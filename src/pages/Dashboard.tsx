@@ -24,32 +24,28 @@ const Dashboard = () => {
             title="Total Students"
             value="4"
             description="Enrolled in various subjects"
-            trend="up"
-            trendValue="2"
+            trend={{ value: "2", positive: true }}
           />
           
           <StatsCard
             title="Active Groups"
             value="3"
             description="Based on subject combinations"
-            trend="up"
-            trendValue="1"
+            trend={{ value: "1", positive: true }}
           />
           
           <StatsCard
             title="Attendance Rate"
             value="85%"
             description="Weekly average"
-            trend="down"
-            trendValue="3"
+            trend={{ value: "3", positive: false }}
           />
           
           <StatsCard
             title="Upcoming Tests"
             value="8"
             description="Scheduled this weekend"
-            trend="up"
-            trendValue="2"
+            trend={{ value: "2", positive: true }}
           />
         </div>
         
