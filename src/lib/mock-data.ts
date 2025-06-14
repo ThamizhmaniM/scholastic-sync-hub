@@ -10,8 +10,6 @@ export const SUBJECTS = [
   "Computer Science",
   "English",
   "Tamil",
-  "Economics",
-  "Commerce",
 ];
 
 export const CLASSES = ["11", "12"];
