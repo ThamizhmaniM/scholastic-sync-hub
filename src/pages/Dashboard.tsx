@@ -1,18 +1,52 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { initDatabase } from "@/lib/db-init";
+import { getDashboardStats } from "@/lib/supabase";
 import { toast } from "sonner";
 
 const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    activeGroups: 0,
+    attendanceRate: 0,
+    upcomingTests: 0
+  });
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    // Initialize the database when the dashboard loads
-    initDatabase().catch(error => {
-      console.error('Failed to initialize database:', error);
-      toast.error('Failed to connect to database. Please check your Supabase connection.');
-    });
+    const initializeAndLoadData = async () => {
+      try {
+        // Initialize the database when the dashboard loads
+        await initDatabase();
+        
+        // Load dashboard statistics
+        const dashboardStats = await getDashboardStats();
+        setStats(dashboardStats);
+      } catch (error) {
+        console.error('Failed to initialize or load data:', error);
+        toast.error('Failed to connect to database. Please check your Supabase connection.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAndLoadData();
   }, []);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading dashboard data...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -22,28 +56,28 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard
             title="Total Students"
-            value="4"
+            value={stats.totalStudents.toString()}
             description="Enrolled in various subjects"
             trend={{ value: "2", positive: true }}
           />
           
           <StatsCard
             title="Active Groups"
-            value="3"
+            value={stats.activeGroups.toString()}
             description="Based on subject combinations"
             trend={{ value: "1", positive: true }}
           />
           
           <StatsCard
             title="Attendance Rate"
-            value="85%"
+            value={`${stats.attendanceRate}%`}
             description="Weekly average"
-            trend={{ value: "3", positive: false }}
+            trend={{ value: "3", positive: stats.attendanceRate >= 80 }}
           />
           
           <StatsCard
             title="Upcoming Tests"
-            value="8"
+            value={stats.upcomingTests.toString()}
             description="Scheduled this weekend"
             trend={{ value: "2", positive: true }}
           />
@@ -55,6 +89,11 @@ const Dashboard = () => {
           <p className="text-muted-foreground">
             This dashboard helps you manage students, groups, timetables, and track attendance.
             Use the sidebar navigation to access different features.
+            {stats.totalStudents === 0 && (
+              <span className="block mt-2 text-amber-600">
+                Start by adding some students to see live statistics.
+              </span>
+            )}
           </p>
         </div>
       </div>

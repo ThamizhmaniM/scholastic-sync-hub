@@ -18,15 +18,16 @@ export async function initDatabase() {
       .limit(1);
     
     // If we get error code 42P01, the table doesn't exist
-    const createTables = 
-      (studentsError?.code === '42P01' || attendanceError?.code === '42P01');
+    const tablesExist = !studentsError && !attendanceError;
     
-    if (createTables) {
-      console.log('Tables need to be created. Please set up your Supabase tables using the SQL provided in the docs.');
-    } else {
-      console.log('Database tables already exist.');
-      // Migrate initial data if tables exist
+    if (tablesExist) {
+      console.log('Database tables are ready.');
+      // Migrate initial data if tables exist and are empty
       await migrateInitialData();
+    } else {
+      console.log('Database tables not found. They should have been created via SQL migration.');
+      if (studentsError) console.error('Students table error:', studentsError);
+      if (attendanceError) console.error('Attendance table error:', attendanceError);
     }
     
   } catch (error) {
