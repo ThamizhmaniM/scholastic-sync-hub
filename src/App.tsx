@@ -1,9 +1,15 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import Students from "./pages/Students";
+import Groups from "./pages/Groups";
+import Timetable from "./pages/Timetable";
+import Tests from "./pages/Tests";
+import Attendance from "./pages/Attendance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -16,7 +22,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/students" element={<Students />} />
+          <Route path="/groups" element={<Groups />} />
+          <Route path="/timetable" element={<Timetable />} />
+          <Route path="/tests" element={<Tests />} />
+          <Route path="/attendance" element={<Attendance />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
