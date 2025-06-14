@@ -9,6 +9,7 @@ export const SUBJECTS = [
   "Biology",
   "Computer Science",
   "English",
+  "Tamil",
 ];
 
 export const CLASSES = ["11", "12"];
