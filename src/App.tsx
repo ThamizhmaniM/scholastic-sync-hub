@@ -4,12 +4,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Students from "./pages/Students";
 import Groups from "./pages/Groups";
 import Timetable from "./pages/Timetable";
 import Tests from "./pages/Tests";
 import Attendance from "./pages/Attendance";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,17 +22,44 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/students" element={<Students />} />
-          <Route path="/groups" element={<Groups />} />
-          <Route path="/timetable" element={<Timetable />} />
-          <Route path="/tests" element={<Tests />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            } />
+            <Route path="/students" element={
+              <ProtectedRoute>
+                <Students />
+              </ProtectedRoute>
+            } />
+            <Route path="/groups" element={
+              <ProtectedRoute>
+                <Groups />
+              </ProtectedRoute>
+            } />
+            <Route path="/timetable" element={
+              <ProtectedRoute>
+                <Timetable />
+              </ProtectedRoute>
+            } />
+            <Route path="/tests" element={
+              <ProtectedRoute>
+                <Tests />
+              </ProtectedRoute>
+            } />
+            <Route path="/attendance" element={
+              <ProtectedRoute>
+                <Attendance />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

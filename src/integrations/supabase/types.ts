@@ -16,6 +16,7 @@ export type Database = {
           id: string
           status: string
           student_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -23,6 +24,7 @@ export type Database = {
           id: string
           status: string
           student_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -30,6 +32,7 @@ export type Database = {
           id?: string
           status?: string
           student_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -41,6 +44,30 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           class: string
@@ -49,6 +76,7 @@ export type Database = {
           name: string
           subjects: string[]
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           class: string
@@ -57,6 +85,7 @@ export type Database = {
           name: string
           subjects: string[]
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           class?: string
@@ -65,6 +94,7 @@ export type Database = {
           name?: string
           subjects?: string[]
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

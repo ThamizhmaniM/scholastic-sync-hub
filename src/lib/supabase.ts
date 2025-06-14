@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Student, AttendanceRecord } from '@/types';
 
@@ -38,6 +39,12 @@ export async function getStudentById(id: string) {
 }
 
 export async function createStudent(student: Omit<Student, "id">) {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User must be authenticated to create students');
+  }
+
   // Generate a simple ID
   const id = `s${Date.now()}`;
   
@@ -47,7 +54,8 @@ export async function createStudent(student: Omit<Student, "id">) {
       id,
       name: student.name,
       class: student.class,
-      subjects: student.subjects
+      subjects: student.subjects,
+      user_id: user.id
     })
     .select()
     .single();
@@ -117,6 +125,12 @@ export async function getAttendanceRecords(studentId?: string) {
 }
 
 export async function markAttendanceInDb(record: Omit<AttendanceRecord, "id">) {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User must be authenticated to mark attendance');
+  }
+
   // Generate a simple ID
   const id = `a${Date.now()}_${record.studentId}`;
   
@@ -127,7 +141,8 @@ export async function markAttendanceInDb(record: Omit<AttendanceRecord, "id">) {
       id,
       student_id: record.studentId,
       date: record.date,
-      status: record.status
+      status: record.status,
+      user_id: user.id
     }, {
       onConflict: 'student_id,date'
     })
@@ -143,7 +158,7 @@ export async function markAttendanceInDb(record: Omit<AttendanceRecord, "id">) {
 }
 
 export async function getAttendanceSummaryFromDb(studentId?: string) {
-  // Get students
+  // Get students for current user
   let studentsQuery = supabase.from('students').select('*');
   if (studentId) {
     studentsQuery = studentsQuery.eq('id', studentId);
@@ -160,7 +175,7 @@ export async function getAttendanceSummaryFromDb(studentId?: string) {
     return [];
   }
   
-  // Get attendance records
+  // Get attendance records for current user
   const { data: records, error: recordsError } = await supabase
     .from('attendance_records')
     .select('student_id, status');
@@ -189,12 +204,12 @@ export async function getAttendanceSummaryFromDb(studentId?: string) {
 // Dashboard Statistics Functions
 export async function getDashboardStats() {
   try {
-    // Get total students count
+    // Get total students count for current user
     const { count: totalStudents } = await supabase
       .from('students')
       .select('*', { count: 'exact', head: true });
     
-    // Get attendance records from the last 7 days
+    // Get attendance records from the last 7 days for current user
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     
@@ -208,7 +223,7 @@ export async function getDashboardStats() {
     const presentRecords = weeklyAttendance?.filter(r => r.status === 'present').length || 0;
     const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0;
     
-    // Get unique subject combinations to estimate groups
+    // Get unique subject combinations to estimate groups for current user
     const { data: students } = await supabase
       .from('students')
       .select('subjects, class');
@@ -236,97 +251,4 @@ export async function getDashboardStats() {
   }
 }
 
-// Migration function to populate initial data - ONLY RUN ONCE
-export async function migrateInitialData() {
-  try {
-    // Check if we've already migrated by looking for a specific initial student
-    const { data: existingStudent } = await supabase
-      .from('students')
-      .select('id')
-      .eq('id', 's1')
-      .single();
-    
-    // If the initial student exists, don't migrate again
-    if (existingStudent) {
-      console.log('Initial data already exists, skipping migration.');
-      return;
-    }
-    
-    // Check if students table is empty
-    const { count: studentCount } = await supabase
-      .from('students')
-      .select('*', { count: 'exact', head: true });
-    
-    // If no students exist, add some initial ones
-    if (studentCount === 0) {
-      const initialStudents = [
-        {
-          id: 's1',
-          name: 'Alice Johnson',
-          class: '11',
-          subjects: ['Mathematics', 'Physics', 'Chemistry']
-        },
-        {
-          id: 's2',
-          name: 'Bob Smith',
-          class: '11',
-          subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology']
-        },
-        {
-          id: 's3',
-          name: 'Charlie Davis',
-          class: '11',
-          subjects: ['Mathematics', 'Physics', 'Chemistry', 'Computer Science']
-        },
-        {
-          id: 's4',
-          name: 'Diana Miller',
-          class: '12',
-          subjects: ['Mathematics', 'Physics', 'Chemistry', 'Biology']
-        }
-      ];
-      
-      const { error } = await supabase
-        .from('students')
-        .insert(initialStudents);
-      
-      if (error) {
-        console.error('Error adding initial students:', error);
-      } else {
-        console.log('Initial students data migrated successfully');
-        
-        // Add some sample attendance records
-        const attendanceRecords = [];
-        const today = new Date();
-        
-        for (let i = 0; i < 5; i++) {
-          const date = new Date(today);
-          date.setDate(today.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          
-          initialStudents.forEach(student => {
-            const status = Math.random() > 0.2 ? 'present' : 'absent';
-            attendanceRecords.push({
-              id: `a${Date.now()}_${student.id}_${i}`,
-              student_id: student.id,
-              date: dateStr,
-              status
-            });
-          });
-        }
-        
-        const { error: attendanceError } = await supabase
-          .from('attendance_records')
-          .insert(attendanceRecords);
-        
-        if (attendanceError) {
-          console.error('Error adding initial attendance records:', attendanceError);
-        } else {
-          console.log('Initial attendance records data migrated successfully');
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error during migration:', error);
-  }
-}
+// Remove migration function as it's no longer needed with user-specific data
