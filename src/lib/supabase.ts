@@ -10,9 +10,17 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Students Table Functions
 export async function getStudents() {
+  // Get current user first
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('User must be authenticated to fetch students');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('students')
     .select('*')
+    .eq('user_id', user.id)
     .order('name');
   
   if (error) {
@@ -24,10 +32,18 @@ export async function getStudents() {
 }
 
 export async function getStudentById(id: string) {
+  // Get current user first
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('User must be authenticated to fetch student');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('students')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .single();
   
   if (error) {
@@ -69,6 +85,12 @@ export async function createStudent(student: Omit<Student, "id">) {
 }
 
 export async function updateStudentInDb(student: Student) {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User must be authenticated to update students');
+  }
+
   const { data, error } = await supabase
     .from('students')
     .update({
@@ -78,6 +100,7 @@ export async function updateStudentInDb(student: Student) {
       updated_at: new Date().toISOString()
     })
     .eq('id', student.id)
+    .eq('user_id', user.id)
     .select()
     .single();
   
@@ -90,10 +113,17 @@ export async function updateStudentInDb(student: Student) {
 }
 
 export async function deleteStudentFromDb(id: string) {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User must be authenticated to delete students');
+  }
+
   const { error } = await supabase
     .from('students')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
   
   if (error) {
     console.error(`Error deleting student with ID ${id}:`, error);
@@ -105,9 +135,17 @@ export async function deleteStudentFromDb(id: string) {
 
 // Attendance Records Functions
 export async function getAttendanceRecords(studentId?: string) {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('User must be authenticated to fetch attendance records');
+    return [];
+  }
+
   let query = supabase
     .from('attendance_records')
     .select('*')
+    .eq('user_id', user.id)
     .order('date', { ascending: false });
   
   if (studentId) {
@@ -144,7 +182,7 @@ export async function markAttendanceInDb(record: Omit<AttendanceRecord, "id">) {
       status: record.status,
       user_id: user.id
     }, {
-      onConflict: 'student_id,date'
+      onConflict: 'student_id,date,user_id'
     })
     .select()
     .single();
@@ -158,8 +196,19 @@ export async function markAttendanceInDb(record: Omit<AttendanceRecord, "id">) {
 }
 
 export async function getAttendanceSummaryFromDb(studentId?: string) {
-  // Get students for current user
-  let studentsQuery = supabase.from('students').select('*');
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('User must be authenticated to fetch attendance summary');
+    return [];
+  }
+
+  // Get students for current user only
+  let studentsQuery = supabase
+    .from('students')
+    .select('*')
+    .eq('user_id', user.id);
+    
   if (studentId) {
     studentsQuery = studentsQuery.eq('id', studentId);
   }
@@ -175,10 +224,11 @@ export async function getAttendanceSummaryFromDb(studentId?: string) {
     return [];
   }
   
-  // Get attendance records for current user
+  // Get attendance records for current user only
   const { data: records, error: recordsError } = await supabase
     .from('attendance_records')
-    .select('student_id, status');
+    .select('student_id, status')
+    .eq('user_id', user.id);
   
   if (recordsError) {
     console.error('Error fetching attendance records for summary:', recordsError);
@@ -204,18 +254,32 @@ export async function getAttendanceSummaryFromDb(studentId?: string) {
 // Dashboard Statistics Functions
 export async function getDashboardStats() {
   try {
-    // Get total students count for current user
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('User must be authenticated to fetch dashboard stats');
+      return {
+        totalStudents: 0,
+        activeGroups: 0,
+        attendanceRate: 0,
+        upcomingTests: 0
+      };
+    }
+
+    // Get total students count for current user only
     const { count: totalStudents } = await supabase
       .from('students')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
     
-    // Get attendance records from the last 7 days for current user
+    // Get attendance records from the last 7 days for current user only
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     
     const { data: weeklyAttendance } = await supabase
       .from('attendance_records')
       .select('status')
+      .eq('user_id', user.id)
       .gte('date', oneWeekAgo.toISOString().split('T')[0]);
     
     // Calculate attendance rate
@@ -223,10 +287,11 @@ export async function getDashboardStats() {
     const presentRecords = weeklyAttendance?.filter(r => r.status === 'present').length || 0;
     const attendanceRate = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : 0;
     
-    // Get unique subject combinations to estimate groups for current user
+    // Get unique subject combinations to estimate groups for current user only
     const { data: students } = await supabase
       .from('students')
-      .select('subjects, class');
+      .select('subjects, class')
+      .eq('user_id', user.id);
     
     const uniqueGroups = new Set();
     students?.forEach(student => {
@@ -250,5 +315,3 @@ export async function getDashboardStats() {
     };
   }
 }
-
-// Remove migration function as it's no longer needed with user-specific data
