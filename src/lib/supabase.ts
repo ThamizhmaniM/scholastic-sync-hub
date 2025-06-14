@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Student, AttendanceRecord } from '@/types';
 
@@ -237,9 +236,22 @@ export async function getDashboardStats() {
   }
 }
 
-// Migration function to populate initial data
+// Migration function to populate initial data - ONLY RUN ONCE
 export async function migrateInitialData() {
   try {
+    // Check if we've already migrated by looking for a specific initial student
+    const { data: existingStudent } = await supabase
+      .from('students')
+      .select('id')
+      .eq('id', 's1')
+      .single();
+    
+    // If the initial student exists, don't migrate again
+    if (existingStudent) {
+      console.log('Initial data already exists, skipping migration.');
+      return;
+    }
+    
     // Check if students table is empty
     const { count: studentCount } = await supabase
       .from('students')

@@ -22,8 +22,12 @@ export async function initDatabase() {
     
     if (tablesExist) {
       console.log('Database tables are ready.');
-      // Migrate initial data if tables exist and are empty
-      await migrateInitialData();
+      // Only migrate initial data once, not every time the app loads
+      const shouldMigrate = localStorage.getItem('initial_data_migrated') !== 'true';
+      if (shouldMigrate) {
+        await migrateInitialData();
+        localStorage.setItem('initial_data_migrated', 'true');
+      }
     } else {
       console.log('Database tables not found. They should have been created via SQL migration.');
       if (studentsError) console.error('Students table error:', studentsError);
