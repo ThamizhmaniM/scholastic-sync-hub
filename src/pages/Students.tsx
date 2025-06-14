@@ -6,6 +6,16 @@ import StudentForm from "@/components/students/StudentForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { 
   getStudents, 
   createStudent, 
   updateStudentInDb, 
@@ -19,6 +29,8 @@ const Students = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
   useEffect(() => {
     loadStudents();
@@ -47,11 +59,18 @@ const Students = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = async (studentId: string) => {
+  const handleDeleteClick = (student: Student) => {
+    setStudentToDelete(student);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+
     try {
-      const success = await deleteStudentFromDb(studentId);
+      const success = await deleteStudentFromDb(studentToDelete.id);
       if (success) {
-        setStudentList(prev => prev.filter(s => s.id !== studentId));
+        setStudentList(prev => prev.filter(s => s.id !== studentToDelete.id));
         toast.success("Student deleted successfully");
       } else {
         toast.error("Failed to delete student");
@@ -59,6 +78,9 @@ const Students = () => {
     } catch (error) {
       console.error('Error deleting student:', error);
       toast.error("Failed to delete student");
+    } finally {
+      setDeleteDialogOpen(false);
+      setStudentToDelete(null);
     }
   };
 
@@ -124,7 +146,10 @@ const Students = () => {
         <StudentList
           students={studentList}
           onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
+          onDelete={(studentId) => {
+            const student = studentList.find(s => s.id === studentId);
+            if (student) handleDeleteClick(student);
+          }}
         />
 
         {/* Student Form Dialog */}
@@ -142,6 +167,30 @@ const Students = () => {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the student{' '}
+                <strong>{studentToDelete?.name}</strong> from the system.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
