@@ -2,6 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Users, BookOpen, CalendarDays, Calendar, ClipboardCheck, BarChart } from "lucide-react";
+import UserMenu from "./UserMenu";
 
 interface SidebarLinkProps {
   to: string;
@@ -63,7 +64,12 @@ export const Layout = ({ children }: LayoutProps) => {
             <BookOpen className="h-6 w-6" />
             <h1 className="text-xl font-bold">EduSchedule</h1>
           </div>
-          {/* Mobile menu button would go here */}
+          <UserMenu />
+        </header>
+
+        {/* Desktop header */}
+        <header className="hidden md:flex bg-white border-b p-4 justify-end">
+          <UserMenu />
         </header>
 
         {/* Main content */}
