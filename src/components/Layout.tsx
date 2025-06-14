@@ -1,73 +1,76 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Users, BookOpen, CalendarDays, Calendar, ClipboardCheck, BarChart } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { 
+  Home, 
+  Users, 
+  UsersRound, 
+  Calendar, 
+  FileText, 
+  UserCheck 
+} from "lucide-react";
+import UserMenu from "./UserMenu";
 
-interface SidebarLinkProps {
-  to: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}
-
-const SidebarLink = ({ to, icon, children }: SidebarLinkProps) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-
-  return (
-    <Link to={to} className={`sidebar-link ${isActive ? "active" : ""}`}>
-      {icon}
-      <span>{children}</span>
-    </Link>
-  );
-};
+const navigation = [
+  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Students", href: "/students", icon: Users },
+  { name: "Groups", href: "/groups", icon: UsersRound },
+  { name: "Timetable", href: "/timetable", icon: Calendar },
+  { name: "Tests", href: "/tests", icon: FileText },
+  { name: "Attendance", href: "/attendance", icon: UserCheck },
+];
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-export const Layout = ({ children }: LayoutProps) => {
+const Layout = ({ children }: LayoutProps) => {
+  const location = useLocation();
+
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="bg-sidebar w-64 border-r p-4 hidden md:block">
-        <div className="flex items-center gap-2 mb-8">
-          <BookOpen className="h-6 w-6 text-sidebar-foreground" />
-          <h1 className="text-xl font-bold text-sidebar-foreground">EduSchedule</h1>
+      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-card border-r">
+        <div className="flex h-16 items-center px-6 border-b">
+          <h1 className="text-xl font-bold">EduSchedule</h1>
         </div>
-        <nav className="space-y-1">
-          <SidebarLink to="/" icon={<BarChart className="h-5 w-5" />}>
-            Dashboard
-          </SidebarLink>
-          <SidebarLink to="/students" icon={<Users className="h-5 w-5" />}>
-            Students
-          </SidebarLink>
-          <SidebarLink to="/groups" icon={<BookOpen className="h-5 w-5" />}>
-            Groups
-          </SidebarLink>
-          <SidebarLink to="/timetable" icon={<CalendarDays className="h-5 w-5" />}>
-            Timetable
-          </SidebarLink>
-          <SidebarLink to="/tests" icon={<Calendar className="h-5 w-5" />}>
-            Tests
-          </SidebarLink>
-          <SidebarLink to="/attendance" icon={<ClipboardCheck className="h-5 w-5" />}>
-            Attendance
-          </SidebarLink>
+        <nav className="mt-6 px-3">
+          <ul className="space-y-1">
+            {navigation.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <li key={item.name}>
+                  <Link
+                    to={item.href}
+                    className={cn(
+                      "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <item.icon className="mr-3 h-4 w-4" />
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
-      </aside>
+      </div>
 
-      {/* Mobile header */}
-      <div className="flex flex-col w-full">
-        <header className="md:hidden bg-sidebar text-sidebar-foreground p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6" />
-            <h1 className="text-xl font-bold">EduSchedule</h1>
-          </div>
-          {/* Mobile menu button would go here */}
+      {/* Main content */}
+      <div className="pl-64">
+        {/* Top header with logout */}
+        <header className="h-16 bg-card border-b flex items-center justify-end px-6">
+          <UserMenu />
         </header>
-
-        {/* Main content */}
-        <main className="flex-1 p-6">{children}</main>
+        
+        {/* Page content */}
+        <main className="p-6">
+          {children}
+        </main>
       </div>
     </div>
   );
