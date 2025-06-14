@@ -103,7 +103,7 @@ const Attendance = () => {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Master Attendance System</h1>
+          <h1 className="text-3xl font-bold">Brainiacs HSC</h1>
         </div>
 
         {/* Quick Stats */}

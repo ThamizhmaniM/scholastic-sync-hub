@@ -89,7 +89,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Master Attendance System</CardTitle>
+          <CardTitle className="text-2xl font-bold">Brainiacs HSC</CardTitle>
           <p className="text-gray-600">Welcome! Please sign in or create an account</p>
         </CardHeader>
         <CardContent>
