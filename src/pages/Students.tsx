@@ -5,7 +5,12 @@ import StudentList from "@/components/students/StudentList";
 import StudentForm from "@/components/students/StudentForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { students, addStudent, updateStudent, deleteStudent } from "@/lib/mock-data";
+import { 
+  getStudents, 
+  createStudent, 
+  updateStudentInDb, 
+  deleteStudentFromDb 
+} from "@/lib/supabase";
 import { Student } from "@/types";
 import { toast } from "sonner";
 
@@ -13,10 +18,24 @@ const Students = () => {
   const [studentList, setStudentList] = useState<Student[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setStudentList([...students]);
+    loadStudents();
   }, []);
+
+  const loadStudents = async () => {
+    try {
+      setLoading(true);
+      const students = await getStudents();
+      setStudentList(students);
+    } catch (error) {
+      console.error('Error loading students:', error);
+      toast.error("Failed to load students");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddClick = () => {
     setEditingStudent(undefined);
@@ -28,37 +47,69 @@ const Students = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = (studentId: string) => {
-    deleteStudent(studentId);
-    setStudentList(students.filter(s => s.id !== studentId));
-    toast.success("Student deleted successfully");
+  const handleDeleteClick = async (studentId: string) => {
+    try {
+      const success = await deleteStudentFromDb(studentId);
+      if (success) {
+        setStudentList(prev => prev.filter(s => s.id !== studentId));
+        toast.success("Student deleted successfully");
+      } else {
+        toast.error("Failed to delete student");
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      toast.error("Failed to delete student");
+    }
   };
 
-  const handleFormSubmit = (studentData: Omit<Student, "id">) => {
-    if (editingStudent) {
-      // Update existing student
-      const updatedStudent = updateStudent({
-        ...studentData,
-        id: editingStudent.id,
-      });
+  const handleFormSubmit = async (studentData: Omit<Student, "id">) => {
+    try {
+      if (editingStudent) {
+        // Update existing student
+        const updatedStudent = await updateStudentInDb({
+          ...studentData,
+          id: editingStudent.id,
+        });
+        
+        if (updatedStudent) {
+          setStudentList(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
+          toast.success("Student updated successfully");
+        } else {
+          toast.error("Failed to update student");
+        }
+      } else {
+        // Add new student
+        const newStudent = await createStudent(studentData);
+        if (newStudent) {
+          setStudentList(prev => [...prev, newStudent]);
+          toast.success("Student added successfully");
+        } else {
+          toast.error("Failed to add student");
+        }
+      }
       
-      setStudentList(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
-      toast.success("Student updated successfully");
-    } else {
-      // Add new student
-      const newStudent = addStudent(studentData);
-      setStudentList(prev => [...prev, newStudent]);
-      toast.success("Student added successfully");
+      setIsFormOpen(false);
+      setEditingStudent(undefined);
+    } catch (error) {
+      console.error('Error saving student:', error);
+      toast.error("Failed to save student");
     }
-    
-    setIsFormOpen(false);
-    setEditingStudent(undefined);
   };
 
   const handleFormCancel = () => {
     setIsFormOpen(false);
     setEditingStudent(undefined);
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading students...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
