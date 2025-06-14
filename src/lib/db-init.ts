@@ -1,5 +1,5 @@
 
-import { supabase, migrateInitialData } from './supabase';
+import { supabase } from './supabase';
 
 // This function will check if our tables exist, and if not, create them
 export async function initDatabase() {
@@ -22,12 +22,7 @@ export async function initDatabase() {
     
     if (tablesExist) {
       console.log('Database tables are ready.');
-      // Only migrate initial data once, not every time the app loads
-      const shouldMigrate = localStorage.getItem('initial_data_migrated') !== 'true';
-      if (shouldMigrate) {
-        await migrateInitialData();
-        localStorage.setItem('initial_data_migrated', 'true');
-      }
+      console.log('User-specific data will be created as users add their own students and attendance records.');
     } else {
       console.log('Database tables not found. They should have been created via SQL migration.');
       if (studentsError) console.error('Students table error:', studentsError);
