@@ -5,28 +5,71 @@ import AttendanceForm from "@/components/attendance/AttendanceForm";
 import AttendanceSummaryComponent from "@/components/attendance/AttendanceSummary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { students, markBulkAttendance, getAttendanceSummary } from "@/lib/mock-data";
-import { AttendanceSummary } from "@/types";
+import { getStudents, markAttendanceInDb, getAttendanceSummaryFromDb } from "@/lib/supabase";
+import { AttendanceSummary, Student } from "@/types";
+import { toast } from "sonner";
 
 const Attendance = () => {
   const [activeTab, setActiveTab] = useState<string>("mark");
-  const [studentList, setStudentList] = useState([...students]);
+  const [studentList, setStudentList] = useState<Student[]>([]);
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial attendance summary
-    const summary = getAttendanceSummary();
-    setAttendanceSummary(summary);
+    loadDataFromDatabase();
   }, []);
 
-  // Mark attendance for selected students
-  const handleMarkAttendance = (studentIds: string[], date: string, status: 'present' | 'absent') => {
-    markBulkAttendance(studentIds, date, status);
-    
-    // Update attendance summary
-    const summary = getAttendanceSummary();
-    setAttendanceSummary(summary);
+  const loadDataFromDatabase = async () => {
+    try {
+      setLoading(true);
+      const students = await getStudents();
+      setStudentList(students);
+      
+      // Get initial attendance summary
+      const summary = await getAttendanceSummaryFromDb();
+      setAttendanceSummary(summary);
+    } catch (error) {
+      console.error('Error loading attendance data:', error);
+      toast.error("Failed to load attendance data");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Mark attendance for selected students
+  const handleMarkAttendance = async (studentIds: string[], date: string, status: 'present' | 'absent') => {
+    try {
+      // Mark attendance for each student
+      const promises = studentIds.map(studentId => 
+        markAttendanceInDb({
+          studentId,
+          date,
+          status
+        })
+      );
+      
+      await Promise.all(promises);
+      
+      // Update attendance summary
+      const summary = await getAttendanceSummaryFromDb();
+      setAttendanceSummary(summary);
+      
+      toast.success("Attendance marked successfully");
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      toast.error("Failed to mark attendance");
+    }
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading attendance data...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
