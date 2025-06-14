@@ -3,6 +3,11 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Student } from "@/types";
 import { toast } from "sonner";
 
@@ -12,7 +17,7 @@ interface AttendanceFormProps {
 }
 
 export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormProps) => {
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
@@ -42,8 +47,9 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
       return;
     }
     
-    onMarkAttendance(selectedStudents, date, 'present');
-    toast.success(`Marked ${selectedStudents.length} students as present for ${date}`);
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    onMarkAttendance(selectedStudents, dateStr, 'present');
+    toast.success(`Marked ${selectedStudents.length} students as present for ${format(selectedDate, 'PPP')}`);
     
     // Reset selection after marking
     setSelectedStudents([]);
@@ -57,78 +63,142 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
       return;
     }
     
-    onMarkAttendance(selectedStudents, date, 'absent');
-    toast.success(`Marked ${selectedStudents.length} students as absent for ${date}`);
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    onMarkAttendance(selectedStudents, dateStr, 'absent');
+    toast.success(`Marked ${selectedStudents.length} students as absent for ${format(selectedDate, 'PPP')}`);
     
     // Reset selection after marking
     setSelectedStudents([]);
     setSelectAll(false);
   };
 
+  // Mark all students present for selected date
+  const markAllPresent = () => {
+    const allStudentIds = students.map(student => student.id);
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    onMarkAttendance(allStudentIds, dateStr, 'present');
+    toast.success(`Marked all students as present for ${format(selectedDate, 'PPP')}`);
+    setSelectedStudents([]);
+    setSelectAll(false);
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Mark Attendance</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
-          <label htmlFor="attendance-date" className="text-sm font-medium">
-            Date:
-          </label>
-          <input
-            id="attendance-date"
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="border rounded px-2 py-1"
-            max={new Date().toISOString().split('T')[0]} // Can't select future dates
-          />
-        </div>
+    <div className="space-y-6">
+      {/* Calendar Date Picker */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Date</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[280px] justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && setSelectedDate(date)}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            
+            <Button onClick={markAllPresent} variant="default">
+              Mark All Present
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="rounded-md border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted">
-                <th className="py-2 px-4 text-left">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="select-all"
-                      checked={selectAll}
-                      onCheckedChange={handleSelectAll}
-                    />
-                    <label htmlFor="select-all" className="text-sm font-medium">Select All</label>
-                  </div>
-                </th>
-                <th className="py-2 px-4 text-left">Student</th>
-                <th className="py-2 px-4 text-left">Class</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map(student => (
-                <tr key={student.id} className="border-b hover:bg-muted/50">
-                  <td className="py-2 px-4">
-                    <Checkbox
-                      id={`student-${student.id}`}
-                      checked={selectedStudents.includes(student.id)}
-                      onCheckedChange={() => handleSelectStudent(student.id)}
-                    />
-                  </td>
-                  <td className="py-2 px-4 font-medium">{student.name}</td>
-                  <td className="py-2 px-4">{student.class}</td>
+      {/* Student Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Mark Attendance for {format(selectedDate, 'PPP')}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Select students and mark them as present or absent
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-md border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted">
+                  <th className="py-3 px-4 text-left">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="select-all"
+                        checked={selectAll}
+                        onCheckedChange={handleSelectAll}
+                      />
+                      <label htmlFor="select-all" className="text-sm font-medium">Select All</label>
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 text-left font-medium">Student Name</th>
+                  <th className="py-3 px-4 text-left font-medium">Class</th>
+                  <th className="py-3 px-4 text-left font-medium">Subjects</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {students.map(student => (
+                  <tr key={student.id} className="border-b hover:bg-muted/50">
+                    <td className="py-3 px-4">
+                      <Checkbox
+                        id={`student-${student.id}`}
+                        checked={selectedStudents.includes(student.id)}
+                        onCheckedChange={() => handleSelectStudent(student.id)}
+                      />
+                    </td>
+                    <td className="py-3 px-4 font-medium">{student.name}</td>
+                    <td className="py-3 px-4">{student.class}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {student.subjects.slice(0, 2).map(subject => (
+                          <span key={subject} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                            {subject}
+                          </span>
+                        ))}
+                        {student.subjects.length > 2 && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                            +{student.subjects.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={markAbsent}>
-            Mark Absent
-          </Button>
-          <Button onClick={markPresent}>Mark Present</Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              {selectedStudents.length} of {students.length} students selected
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={markAbsent} disabled={selectedStudents.length === 0}>
+                Mark Absent ({selectedStudents.length})
+              </Button>
+              <Button onClick={markPresent} disabled={selectedStudents.length === 0}>
+                Mark Present ({selectedStudents.length})
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
