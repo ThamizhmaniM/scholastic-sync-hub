@@ -12,9 +12,11 @@ export const SUBJECTS = [
   "Tamil",
   "Economics",
   "Commerce",
+  "Science",
+  "Social Science",
 ];
 
-export const CLASSES = ["11", "12"];
+export const CLASSES = ["9", "10", "11", "12"];
 
 // Initial students data
 export let students: Student[] = [
@@ -45,6 +47,20 @@ export let students: Student[] = [
     class: "12",
     subjects: ["Mathematics", "Physics", "Chemistry", "Biology"],
     gender: "female",
+  },
+  {
+    id: "s5",
+    name: "Emily White",
+    class: "9",
+    subjects: ["Tamil", "English", "Mathematics", "Science", "Social Science"],
+    gender: "female",
+  },
+  {
+    id: "s6",
+    name: "Frank Green",
+    class: "10",
+    subjects: ["Tamil", "English", "Mathematics", "Science", "Social Science"],
+    gender: "male",
   },
 ];
 
