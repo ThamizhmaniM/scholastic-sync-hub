@@ -1,6 +1,5 @@
-
 import { createClient } from '@supabase/supabase-js';
-import { Student, AttendanceRecord } from '@/types';
+import { Student, AttendanceRecord, WeeklyTestMark } from '@/types';
 
 // Create a single supabase client for interacting with the database
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ayjhqayszahqerzmtyni.supabase.co';

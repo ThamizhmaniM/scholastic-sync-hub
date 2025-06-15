@@ -16,27 +16,27 @@ interface WeeklyMarksFormProps {
   onCancel?: () => void;
 }
 
+// Helper function to get current week number
+const getCurrentWeekNumber = (): number => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+};
+
 const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMarksFormProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     studentId: initialData?.studentId || "",
     subject: initialData?.subject || "",
-    weekNumber: initialData?.weekNumber || new Date().getWeek(),
+    weekNumber: initialData?.weekNumber || getCurrentWeekNumber(),
     year: initialData?.year || new Date().getFullYear(),
     marksObtained: initialData?.marksObtained || 0,
     totalMarks: initialData?.totalMarks || 100,
     testDate: initialData?.testDate || new Date().toISOString().split('T')[0],
     remarks: initialData?.remarks || "",
   });
-
-  // Get current week number
-  Date.prototype.getWeek = function() {
-    const date = new Date(this.getTime());
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-    const week1 = new Date(date.getFullYear(), 0, 4);
-    return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +71,7 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
         setFormData({
           studentId: "",
           subject: "",
-          weekNumber: new Date().getWeek(),
+          weekNumber: getCurrentWeekNumber(),
           year: new Date().getFullYear(),
           marksObtained: 0,
           totalMarks: 100,
