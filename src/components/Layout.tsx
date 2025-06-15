@@ -29,7 +29,12 @@ const SidebarLink = ({ to, icon, children }: SidebarLinkProps) => {
   const isActive = location.pathname === to;
 
   return (
-    <Link to={to} className={`sidebar-link ${isActive ? "active" : ""}`}>
+    <Link
+      to={to}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
+        isActive ? "bg-muted text-primary font-medium" : ""
+      }`}
+    >
       {icon}
       <span>{children}</span>
     </Link>
