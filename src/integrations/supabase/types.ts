@@ -72,6 +72,7 @@ export type Database = {
         Row: {
           class: string
           created_at: string | null
+          gender: string
           id: string
           name: string
           subjects: string[]
@@ -81,6 +82,7 @@ export type Database = {
         Insert: {
           class: string
           created_at?: string | null
+          gender: string
           id: string
           name: string
           subjects: string[]
@@ -90,6 +92,7 @@ export type Database = {
         Update: {
           class?: string
           created_at?: string | null
+          gender?: string
           id?: string
           name?: string
           subjects?: string[]

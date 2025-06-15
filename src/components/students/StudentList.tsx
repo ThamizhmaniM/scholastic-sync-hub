@@ -49,6 +49,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Class</TableHead>
+              <TableHead>Gender</TableHead>
               <TableHead>Subjects</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -56,7 +57,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
           <TableBody>
             {students.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   No students found
                 </TableCell>
               </TableRow>
@@ -65,6 +66,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.class}</TableCell>
+                  <TableCell className="capitalize">{student.gender}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {student.subjects.map((subject) => (

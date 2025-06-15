@@ -1,9 +1,9 @@
-
 export interface Student {
   id: string;
   name: string;
   class: string;
   subjects: string[];
+  gender: "male" | "female";
 }
 
 export interface Group {

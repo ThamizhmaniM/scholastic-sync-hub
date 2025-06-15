@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Student } from "@/types";
 import { SUBJECTS, CLASSES } from "@/lib/mock-data";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface StudentFormProps {
   student?: Student;
@@ -16,6 +17,7 @@ interface StudentFormProps {
 
 export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) => {
   const [name, setName] = useState(student?.name || "");
+  const [gender, setGender] = useState<"male" | "female">(student?.gender || "male");
   const [classValue, setClassValue] = useState(student?.class || CLASSES[0]);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(
     student?.subjects || []
@@ -44,6 +46,7 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
 
     onSubmit({
       name,
+      gender,
       class: classValue,
       subjects: selectedSubjects,
     });
@@ -60,6 +63,24 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
           placeholder="Enter student name"
           required
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Gender</Label>
+        <RadioGroup
+          value={gender}
+          onValueChange={(value) => setGender(value as "male" | "female")}
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="male" id="male" />
+            <Label htmlFor="male">Male</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="female" id="female" />
+            <Label htmlFor="female">Female</Label>
+          </div>
+        </RadioGroup>
       </div>
 
       <div className="space-y-2">
