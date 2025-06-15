@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Users, BookOpen, CalendarDays, Calendar, ClipboardCheck, BarChart, FileText } from "lucide-react";
+import { Users, BookOpen, CalendarDays, ClipboardCheck, BarChart, FileText } from "lucide-react";
 import UserMenu from "./UserMenu";
 
 interface SidebarLinkProps {
@@ -47,9 +47,6 @@ export const Layout = ({ children }: LayoutProps) => {
           </SidebarLink>
           <SidebarLink to="/timetable" icon={<CalendarDays className="h-5 w-5" />}>
             Timetable
-          </SidebarLink>
-          <SidebarLink to="/tests" icon={<Calendar className="h-5 w-5" />}>
-            Tests
           </SidebarLink>
           <SidebarLink to="/attendance" icon={<ClipboardCheck className="h-5 w-5" />}>
             Attendance

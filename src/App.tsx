@@ -10,7 +10,6 @@ import Index from "./pages/Index";
 import Students from "./pages/Students";
 import Groups from "./pages/Groups";
 import Timetable from "./pages/Timetable";
-import Tests from "./pages/Tests";
 import Attendance from "./pages/Attendance";
 import WeeklyMarks from "./pages/WeeklyMarks";
 import Auth from "./pages/Auth";
@@ -45,11 +44,6 @@ const App = () => (
             <Route path="/timetable" element={
               <ProtectedRoute>
                 <Timetable />
-              </ProtectedRoute>
-            } />
-            <Route path="/tests" element={
-              <ProtectedRoute>
-                <Tests />
               </ProtectedRoute>
             } />
             <Route path="/attendance" element={
