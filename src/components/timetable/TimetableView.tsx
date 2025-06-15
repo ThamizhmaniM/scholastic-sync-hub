@@ -34,7 +34,8 @@ export const TimetableView = ({ group, timetable }: TimetableProps) => {
       "English": "bg-indigo-100 text-indigo-800",
     };
     
-    return colors[subject] || "bg-gray-100 text-gray-800";
+    const mainSubject = subject.split(' / ')[0];
+    return colors[mainSubject] || "bg-gray-100 text-gray-800";
   };
 
   return (

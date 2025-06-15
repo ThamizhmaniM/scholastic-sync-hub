@@ -48,40 +48,32 @@ const Timetable = () => {
     const groupMap: Map<string, Group> = new Map();
 
     students.forEach((student) => {
-      // Create a unique key based on class and subjects
-      const key = `${student.class}-${student.subjects.sort().join("-")}`;
+      // Create a unique key based on class
+      const key = student.class;
       
       if (!groupMap.has(key)) {
-        // Generate a descriptive name based on subjects
-        let groupName = `Class ${student.class} - `;
-        
-        if (student.subjects.includes("Mathematics") && 
-            student.subjects.includes("Physics") && 
-            student.subjects.includes("Chemistry")) {
-          if (student.subjects.includes("Biology")) {
-            groupName += "PCB";
-          } else if (student.subjects.includes("Computer Science")) {
-            groupName += "CS";
-          } else {
-            groupName += "PCM";
-          }
-        } else {
-          // For other combinations, use first letters
-          groupName += student.subjects.map(s => s[0]).join("");
-        }
-
         groupMap.set(key, {
-          id: `group-${key}`,
-          name: groupName,
+          id: `group-class-${student.class}`,
+          name: `Class ${student.class}`,
           class: student.class,
-          subjects: [...student.subjects],
+          subjects: [],
           students: [],
         });
       }
 
-      // Add student to the appropriate group
-      groupMap.get(key)?.students.push(student);
+      const group = groupMap.get(key)!;
+      group.students.push(student);
     });
+
+    // After grouping, collect all unique subjects for each group
+    groupMap.forEach(group => {
+      const subjects = new Set<string>();
+      group.students.forEach(s => {
+        s.subjects.forEach(sub => subjects.add(sub));
+      });
+      group.subjects = Array.from(subjects);
+    });
+
 
     return Array.from(groupMap.values());
   };
@@ -92,17 +84,52 @@ const Timetable = () => {
       slots: [],
     };
 
-    // Shuffle subjects for variety
-    const shuffledSubjects = [...group.subjects].sort(() => Math.random() - 0.5);
-    let subjectIndex = 0;
+    const studentCount = group.students.length;
+    if (studentCount === 0) {
+      return timetable;
+    }
 
-    // For each day
+    const subjectCounts = new Map<string, number>();
+    group.subjects.forEach(s => subjectCounts.set(s, 0));
+
+    group.students.forEach(student => {
+      student.subjects.forEach(subject => {
+        if (subjectCounts.has(subject)) {
+          subjectCounts.set(subject, subjectCounts.get(subject)! + 1);
+        }
+      });
+    });
+
+    const coreSubjects: string[] = [];
+    const optionalSubjects: string[] = [];
+    subjectCounts.forEach((count, subject) => {
+      // A subject is core if all students in the group take it
+      if (count === studentCount) {
+        coreSubjects.push(subject);
+      } else {
+        optionalSubjects.push(subject);
+      }
+    });
+
+    const scheduledItems: string[] = [...coreSubjects];
+    // Pair up optional subjects
+    for (let i = 0; i < optionalSubjects.length; i += 2) {
+      if (i + 1 < optionalSubjects.length) {
+        scheduledItems.push(`${optionalSubjects[i]} / ${optionalSubjects[i + 1]}`);
+      } else {
+        scheduledItems.push(optionalSubjects[i]);
+      }
+    }
+    
+    const shuffledItems = scheduledItems.sort(() => Math.random() - 0.5);
+    let itemIndex = 0;
+
     DAYS.forEach((day) => {
-      // For each time slot
       TIME_SLOTS.forEach((timeSlot) => {
-        // Assign a subject, ensuring no subject repeats on consecutive days
-        const subject = shuffledSubjects[subjectIndex % shuffledSubjects.length];
-        subjectIndex++;
+        const subject = shuffledItems.length > 0 
+          ? shuffledItems[itemIndex % shuffledItems.length]
+          : "Free Slot";
+        itemIndex++;
 
         timetable.slots.push({
           day,
