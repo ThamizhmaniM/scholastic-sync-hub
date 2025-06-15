@@ -23,24 +23,28 @@ export let students: Student[] = [
     name: "Alice Johnson",
     class: "11",
     subjects: ["Mathematics", "Physics", "Chemistry"],
+    gender: "female",
   },
   {
     id: "s2",
     name: "Bob Smith",
     class: "11",
     subjects: ["Mathematics", "Physics", "Chemistry", "Biology"],
+    gender: "male",
   },
   {
     id: "s3",
     name: "Charlie Davis",
     class: "11",
     subjects: ["Mathematics", "Physics", "Chemistry", "Computer Science"],
+    gender: "male",
   },
   {
     id: "s4",
     name: "Diana Miller",
     class: "12",
     subjects: ["Mathematics", "Physics", "Chemistry", "Biology"],
+    gender: "female",
   },
 ];
 
