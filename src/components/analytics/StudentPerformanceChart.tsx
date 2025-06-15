@@ -14,6 +14,8 @@ interface StudentPerformanceChartProps {
 
 const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartProps) => {
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [chartType, setChartType] = useState<"line" | "bar">("line");
   const [chartData, setChartData] = useState<any[]>([]);
 
@@ -29,9 +31,29 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
   };
 
   useEffect(() => {
+    if (selectedStudent) {
+      const studentAllMarks = marks.filter(
+        (mark) => mark.student_id === selectedStudent
+      );
+      const subjects = [
+        ...new Set(studentAllMarks.map((mark) => mark.subject)),
+      ];
+      setAvailableSubjects(subjects as string[]);
+    } else {
+      setAvailableSubjects([]);
+    }
+  }, [selectedStudent, marks]);
+
+  useEffect(() => {
     if (selectedStudent && marks.length > 0) {
-      const studentMarks = marks
-        .filter(mark => mark.student_id === selectedStudent)
+      let studentMarks = marks
+        .filter(mark => mark.student_id === selectedStudent);
+      
+      if (selectedSubject) {
+        studentMarks = studentMarks.filter(mark => mark.subject === selectedSubject);
+      }
+      
+      const processedData = studentMarks
         .sort((a, b) => {
           // Sort by year, then week number
           if (a.year !== b.year) return a.year - b.year;
@@ -48,11 +70,11 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
           testDate: new Date(mark.test_date).toLocaleDateString(),
         }));
 
-      setChartData(studentMarks);
+      setChartData(processedData);
     } else {
       setChartData([]);
     }
-  }, [selectedStudent, marks]);
+  }, [selectedStudent, selectedSubject, marks]);
 
   const getStudentName = (studentId: string) => {
     const student = students.find(s => s.id === studentId);
@@ -87,10 +109,13 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-sm font-medium mb-2 block">Select Student</label>
-          <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+          <Select value={selectedStudent} onValueChange={(value) => {
+            setSelectedStudent(value);
+            setSelectedSubject("");
+          }}>
             <SelectTrigger>
               <SelectValue placeholder="Choose a student" />
             </SelectTrigger>
@@ -98,6 +123,27 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
               {students.map((student) => (
                 <SelectItem key={student.id} value={student.id}>
                   {student.name} (Class {student.class})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">Select Subject</label>
+          <Select 
+            value={selectedSubject} 
+            onValueChange={setSelectedSubject}
+            disabled={!selectedStudent || availableSubjects.length === 0}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All Subjects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Subjects</SelectItem>
+              {availableSubjects.map((subject) => (
+                <SelectItem key={subject} value={subject}>
+                  {subject}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -173,7 +219,7 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
         <CardHeader>
           <CardTitle>
             {selectedStudent 
-              ? `Performance Analysis - ${getStudentName(selectedStudent)}`
+              ? `Performance Analysis - ${getStudentName(selectedStudent)}${selectedSubject ? ` - ${selectedSubject}` : ''}`
               : "Select a student to view performance analysis"
             }
           </CardTitle>
