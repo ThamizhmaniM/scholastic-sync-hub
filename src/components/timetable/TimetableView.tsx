@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Group, Timetable } from "@/types";
@@ -44,7 +43,8 @@ export const TimetableView = ({ group, timetable }: TimetableProps) => {
         <CardTitle>Timetable for {group.name}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        {/* Desktop View: Table (hidden on small screens) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -78,6 +78,43 @@ export const TimetableView = ({ group, timetable }: TimetableProps) => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View: Day by day list (visible on small screens) */}
+        <div className="block md:hidden">
+          {DAYS.map(day => (
+            <div key={day} className="mb-6">
+              <h4 className="text-lg font-semibold mb-2 border-b pb-1">{day}</h4>
+              <div className="space-y-2">
+                {TIME_SLOTS.map(timeSlot => {
+                  const subject = getSubjectForSlot(day, timeSlot.start);
+                  if (subject !== "No Class" && subject !== "Free Slot") {
+                    return (
+                      <div key={timeSlot.start} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {timeSlot.start} - {timeSlot.end}
+                        </span>
+                        <div
+                          className={`rounded p-2 text-sm text-center min-w-[120px] ${getColorForSubject(
+                            subject
+                          )}`}
+                        >
+                          {subject}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+              {TIME_SLOTS.every(timeSlot => {
+                  const subject = getSubjectForSlot(day, timeSlot.start);
+                  return subject === "No Class" || subject === "Free Slot";
+              }) && (
+                <p className="text-sm text-muted-foreground mt-2">No classes scheduled.</p>
+              )}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
