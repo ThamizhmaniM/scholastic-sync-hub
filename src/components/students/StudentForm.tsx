@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,22 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(
     student?.subjects || []
   );
+
+  const allowedSubjectsFor9And10 = [
+    "Tamil",
+    "English",
+    "Mathematics",
+    "Science",
+    "Social Science",
+  ];
+
+  useEffect(() => {
+    if (classValue === "9" || classValue === "10") {
+      setSelectedSubjects((prev) =>
+        prev.filter((s) => allowedSubjectsFor9And10.includes(s))
+      );
+    }
+  }, [classValue]);
 
   const handleSubjectToggle = (subject: string) => {
     setSelectedSubjects(prev =>
@@ -105,21 +121,28 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
       <div className="space-y-2">
         <Label>Subjects</Label>
         <div className="grid grid-cols-2 gap-3">
-          {SUBJECTS.map(subject => (
-            <div key={subject} className="flex items-center space-x-2">
-              <Checkbox
-                id={`subject-${subject}`}
-                checked={selectedSubjects.includes(subject)}
-                onCheckedChange={() => handleSubjectToggle(subject)}
-              />
-              <label
-                htmlFor={`subject-${subject}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {subject}
-              </label>
-            </div>
-          ))}
+          {SUBJECTS.map(subject => {
+            const isDisallowed =
+              (classValue === "9" || classValue === "10") &&
+              !allowedSubjectsFor9And10.includes(subject);
+
+            return (
+              <div key={subject} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`subject-${subject}`}
+                  checked={selectedSubjects.includes(subject)}
+                  onCheckedChange={() => handleSubjectToggle(subject)}
+                  disabled={isDisallowed}
+                />
+                <label
+                  htmlFor={`subject-${subject}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {subject}
+                </label>
+              </div>
+            );
+          })}
         </div>
       </div>
 
