@@ -25,8 +25,8 @@ const App = () => (
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Auth />} />
-            <Route path="/dashboard" element={
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={
               <ProtectedRoute>
                 <Index />
               </ProtectedRoute>

@@ -36,7 +36,7 @@ export const Layout = ({ children }: LayoutProps) => {
           <h1 className="text-xl font-bold text-sidebar-foreground">EduSchedule</h1>
         </div>
         <nav className="space-y-1">
-          <SidebarLink to="/dashboard" icon={<BarChart className="h-5 w-5" />}>
+          <SidebarLink to="/" icon={<BarChart className="h-5 w-5" />}>
             Dashboard
           </SidebarLink>
           <SidebarLink to="/students" icon={<Users className="h-5 w-5" />}>

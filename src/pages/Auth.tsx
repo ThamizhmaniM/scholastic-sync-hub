@@ -30,7 +30,7 @@ const Auth = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [user, navigate]);
 
@@ -48,7 +48,7 @@ const Auth = () => {
       toast.error(error.message || 'Failed to sign in');
     } else {
       toast.success('Signed in successfully!');
-      navigate('/dashboard');
+      navigate('/');
     }
     setLoading(false);
   };
