@@ -3,10 +3,12 @@ import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import WeeklyMarksForm from "@/components/marks/WeeklyMarksForm";
 import WeeklyMarksList from "@/components/marks/WeeklyMarksList";
+import StudentPerformanceChart from "@/components/analytics/StudentPerformanceChart";
+import ClassPerformanceOverview from "@/components/analytics/ClassPerformanceOverview";
 import { getStudents, getWeeklyTestMarks, createWeeklyTestMark, updateWeeklyTestMark, deleteWeeklyTestMark } from "@/lib/supabase";
 import { Student, WeeklyTestMark } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -170,10 +172,18 @@ const WeeklyMarks = () => {
           </div>
         ) : (
           <Tabs defaultValue="view" value={showForm ? "add" : "view"}>
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="view" onClick={() => setShowForm(false)}>View Marks</TabsTrigger>
               <TabsTrigger value="add" onClick={() => setShowForm(true)}>
                 {editingMark ? 'Edit Marks' : 'Add Marks'}
+              </TabsTrigger>
+              <TabsTrigger value="analytics">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Student Analytics
+              </TabsTrigger>
+              <TabsTrigger value="overview">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Class Overview
               </TabsTrigger>
             </TabsList>
 
@@ -193,6 +203,20 @@ const WeeklyMarks = () => {
                 onSubmit={editingMark ? handleUpdateMark : handleAddMark}
                 initialData={editingMark || undefined}
                 onCancel={handleCancelEdit}
+              />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="mt-6">
+              <StudentPerformanceChart
+                students={students}
+                marks={marks}
+              />
+            </TabsContent>
+
+            <TabsContent value="overview" className="mt-6">
+              <ClassPerformanceOverview
+                students={students}
+                marks={marks}
               />
             </TabsContent>
           </Tabs>
