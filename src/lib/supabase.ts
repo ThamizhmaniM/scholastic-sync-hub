@@ -331,7 +331,6 @@ export async function getDashboardStats() {
       totalStudents: totalStudents || 0,
       activeGroups: uniqueGroups.size,
       attendanceRate,
-      upcomingTests: 8 // This would come from a tests table in the future
     };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
@@ -339,7 +338,6 @@ export async function getDashboardStats() {
       totalStudents: 0,
       activeGroups: 0,
       attendanceRate: 0,
-      upcomingTests: 0
     };
   }
 }

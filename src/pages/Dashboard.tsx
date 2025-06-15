@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -11,7 +10,6 @@ const Dashboard = () => {
     totalStudents: 0,
     activeGroups: 0,
     attendanceRate: 0,
-    upcomingTests: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +51,7 @@ const Dashboard = () => {
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatsCard
             title="Total Students"
             value={stats.totalStudents.toString()}
@@ -73,13 +71,6 @@ const Dashboard = () => {
             value={`${stats.attendanceRate}%`}
             description="Weekly average"
             trend={{ value: "3", positive: stats.attendanceRate >= 80 }}
-          />
-          
-          <StatsCard
-            title="Upcoming Tests"
-            value={stats.upcomingTests.toString()}
-            description="Scheduled this weekend"
-            trend={{ value: "2", positive: true }}
           />
         </div>
         
