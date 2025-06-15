@@ -32,10 +32,18 @@ const WeeklyMarksList = ({ marks, students, onEdit, onDelete, onFilter }: Weekly
     
     // Apply filters
     const filterObj: any = {};
-    if (newFilters.studentId) filterObj.studentId = newFilters.studentId;
-    if (newFilters.weekNumber) filterObj.weekNumber = parseInt(newFilters.weekNumber);
-    if (newFilters.year) filterObj.year = parseInt(newFilters.year);
-    if (newFilters.subject) filterObj.subject = newFilters.subject;
+    if (newFilters.studentId && newFilters.studentId !== '_all_') {
+      filterObj.studentId = newFilters.studentId;
+    }
+    if (newFilters.weekNumber) {
+      filterObj.weekNumber = parseInt(newFilters.weekNumber);
+    }
+    if (newFilters.year) {
+      filterObj.year = parseInt(newFilters.year);
+    }
+    if (newFilters.subject && newFilters.subject !== '_all_') {
+      filterObj.subject = newFilters.subject;
+    }
     
     onFilter(filterObj);
   };
@@ -86,7 +94,7 @@ const WeeklyMarksList = ({ marks, students, onEdit, onDelete, onFilter }: Weekly
                 <SelectValue placeholder="All students" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All students</SelectItem>
+                <SelectItem value="_all_">All students</SelectItem>
                 {students.map((student) => (
                   <SelectItem key={student.id} value={student.id}>
                     {student.name}
@@ -103,7 +111,7 @@ const WeeklyMarksList = ({ marks, students, onEdit, onDelete, onFilter }: Weekly
                 <SelectValue placeholder="All subjects" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All subjects</SelectItem>
+                <SelectItem value="_all_">All subjects</SelectItem>
                 {allSubjects.map((subject) => (
                   <SelectItem key={subject} value={subject}>
                     {subject}
