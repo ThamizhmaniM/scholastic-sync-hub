@@ -32,8 +32,8 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
     subject: initialData?.subject || "",
     weekNumber: initialData?.weekNumber || getCurrentWeekNumber(),
     year: initialData?.year || new Date().getFullYear(),
-    marksObtained: initialData?.marksObtained || 0,
-    totalMarks: initialData?.totalMarks || 100,
+    marksObtained: initialData?.marksObtained?.toString() ?? "",
+    totalMarks: initialData?.totalMarks?.toString() ?? "100",
     testDate: initialData?.testDate || new Date().toISOString().split('T')[0],
     remarks: initialData?.remarks || "",
   });
@@ -50,7 +50,19 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
       return;
     }
 
-    if (formData.marksObtained > formData.totalMarks) {
+    const marksObtained = parseFloat(formData.marksObtained);
+    const totalMarks = parseFloat(formData.totalMarks);
+
+    if (isNaN(marksObtained) || isNaN(totalMarks) || totalMarks <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter valid marks. Total marks must be greater than 0.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (marksObtained > totalMarks) {
       toast({
         title: "Error",
         description: "Marks obtained cannot be greater than total marks",
@@ -60,7 +72,16 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
     }
 
     try {
-      await onSubmit(formData);
+      await onSubmit({
+        studentId: formData.studentId,
+        subject: formData.subject,
+        weekNumber: formData.weekNumber,
+        year: formData.year,
+        marksObtained,
+        totalMarks,
+        testDate: formData.testDate,
+        remarks: formData.remarks,
+      });
       toast({
         title: "Success",
         description: initialData ? "Test mark updated successfully" : "Test mark added successfully",
@@ -69,12 +90,12 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
       if (!initialData) {
         // Reset form for new entry
         setFormData({
-          studentId: "",
-          subject: "",
+          studentId: formData.studentId, // Keep student selected
+          subject: "", // Clear subject
           weekNumber: getCurrentWeekNumber(),
           year: new Date().getFullYear(),
-          marksObtained: 0,
-          totalMarks: 100,
+          marksObtained: "",
+          totalMarks: "100",
           testDate: new Date().toISOString().split('T')[0],
           remarks: "",
         });
@@ -100,7 +121,7 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="student">Student</Label>
-              <Select value={formData.studentId} onValueChange={(value) => setFormData({...formData, studentId: value})}>
+              <Select value={formData.studentId} onValueChange={(value) => setFormData({...formData, studentId: value, subject: ''})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select student" />
                 </SelectTrigger>
@@ -162,11 +183,10 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
               <Label htmlFor="marksObtained">Marks Obtained</Label>
               <Input
                 id="marksObtained"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                placeholder="e.g. 85"
                 value={formData.marksObtained}
-                onChange={(e) => setFormData({...formData, marksObtained: parseFloat(e.target.value) || 0})}
+                onChange={(e) => setFormData({...formData, marksObtained: e.target.value})}
               />
             </div>
 
@@ -174,11 +194,10 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
               <Label htmlFor="totalMarks">Total Marks</Label>
               <Input
                 id="totalMarks"
-                type="number"
-                min="1"
-                step="0.01"
+                type="text"
+                placeholder="e.g. 100"
                 value={formData.totalMarks}
-                onChange={(e) => setFormData({...formData, totalMarks: parseFloat(e.target.value) || 100})}
+                onChange={(e) => setFormData({...formData, totalMarks: e.target.value})}
               />
             </div>
 
@@ -197,7 +216,14 @@ const WeeklyMarksForm = ({ students, onSubmit, initialData, onCancel }: WeeklyMa
               <Input
                 id="percentage"
                 type="text"
-                value={`${((formData.marksObtained / formData.totalMarks) * 100).toFixed(2)}%`}
+                value={(() => {
+                  const obtained = parseFloat(formData.marksObtained);
+                  const total = parseFloat(formData.totalMarks);
+                  if (!isNaN(obtained) && !isNaN(total) && total > 0) {
+                    return `${((obtained / total) * 100).toFixed(2)}%`;
+                  }
+                  return "N/A";
+                })()}
                 disabled
                 className="bg-gray-100"
               />
