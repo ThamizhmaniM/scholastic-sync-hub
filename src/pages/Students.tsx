@@ -1,10 +1,16 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import StudentList from "@/components/students/StudentList";
 import StudentForm from "@/components/students/StudentForm";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   getStudents, 
   createStudent, 
@@ -13,12 +19,14 @@ import {
 } from "@/lib/supabase";
 import { Student } from "@/types";
 import { toast } from "sonner";
+import { CLASSES } from "@/lib/mock-data";
 
 const Students = () => {
   const [studentList, setStudentList] = useState<Student[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<string>("all");
 
   useEffect(() => {
     loadStudents();
@@ -101,6 +109,10 @@ const Students = () => {
     setEditingStudent(undefined);
   };
 
+  const filteredStudents = studentList.filter(
+    (student) => selectedClass === "all" || student.class === selectedClass
+  );
+
   if (loading) {
     return (
       <Layout>
@@ -116,13 +128,28 @@ const Students = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Students</h1>
-          <Button onClick={handleAddClick}>
-            Add Student
-          </Button>
+          <div className="flex items-center gap-4">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {CLASSES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    Class {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAddClick}>
+              Add Student
+            </Button>
+          </div>
         </div>
 
         <StudentList
-          students={studentList}
+          students={filteredStudents}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
         />
@@ -134,6 +161,9 @@ const Students = () => {
               <DialogTitle>
                 {editingStudent ? "Edit Student" : "Add New Student"}
               </DialogTitle>
+              <DialogDescription>
+                Please fill in the details for the student.
+              </DialogDescription>
             </DialogHeader>
             <StudentForm
               student={editingStudent}
