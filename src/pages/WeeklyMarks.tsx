@@ -17,7 +17,7 @@ const WeeklyMarks = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [marks, setMarks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState("view");
   const [editingMark, setEditingMark] = useState<WeeklyTestMark | null>(null);
   const [filters, setFilters] = useState<any>({});
 
@@ -72,7 +72,7 @@ const WeeklyMarks = () => {
       const newMark = await createWeeklyTestMark(markData);
       if (newMark) {
         await loadMarks();
-        setShowForm(false);
+        setActiveTab("view");
       }
     } catch (error) {
       console.error('Error adding mark:', error);
@@ -91,7 +91,7 @@ const WeeklyMarks = () => {
       if (updatedMark) {
         await loadMarks();
         setEditingMark(null);
-        setShowForm(false);
+        setActiveTab("view");
       }
     } catch (error) {
       console.error('Error updating mark:', error);
@@ -123,16 +123,23 @@ const WeeklyMarks = () => {
 
   const handleEditMark = (mark: WeeklyTestMark) => {
     setEditingMark(mark);
-    setShowForm(true);
+    setActiveTab("add");
   };
 
   const handleCancelEdit = () => {
     setEditingMark(null);
-    setShowForm(false);
+    setActiveTab("view");
   };
 
   const handleFilter = (newFilters: any) => {
     setFilters(newFilters);
+  };
+  
+  const handleTabChange = (value: string) => {
+    if (value !== 'add') {
+      setEditingMark(null);
+    }
+    setActiveTab(value);
   };
 
   if (loading) {
@@ -153,9 +160,9 @@ const WeeklyMarks = () => {
             <BookOpen className="h-6 w-6" />
             <h1 className="text-2xl font-bold">Weekly Test Marks</h1>
           </div>
-          <Button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2">
+          <Button onClick={() => handleTabChange(activeTab === 'add' ? 'view' : 'add')} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            {showForm ? 'Hide Form' : 'Add Marks'}
+            {activeTab === 'add' ? 'Cancel' : 'Add Marks'}
           </Button>
         </div>
 
@@ -171,10 +178,10 @@ const WeeklyMarks = () => {
             </Button>
           </div>
         ) : (
-          <Tabs defaultValue="view" value={showForm ? "add" : "view"}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="view" onClick={() => setShowForm(false)}>View Marks</TabsTrigger>
-              <TabsTrigger value="add" onClick={() => setShowForm(true)}>
+              <TabsTrigger value="view">View Marks</TabsTrigger>
+              <TabsTrigger value="add">
                 {editingMark ? 'Edit Marks' : 'Add Marks'}
               </TabsTrigger>
               <TabsTrigger value="analytics">
