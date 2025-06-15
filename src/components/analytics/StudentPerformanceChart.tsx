@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,7 +13,7 @@ interface StudentPerformanceChartProps {
 
 const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartProps) => {
   const [selectedStudent, setSelectedStudent] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<string>("_all_");
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [chartType, setChartType] = useState<"line" | "bar">("line");
   const [chartData, setChartData] = useState<any[]>([]);
@@ -36,7 +35,7 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
         (mark) => mark.student_id === selectedStudent
       );
       const subjects = [
-        ...new Set(studentAllMarks.map((mark) => mark.subject)),
+        ...new Set(studentAllMarks.map((mark) => mark.subject).filter(Boolean)),
       ];
       setAvailableSubjects(subjects as string[]);
     } else {
@@ -49,7 +48,7 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
       let studentMarks = marks
         .filter(mark => mark.student_id === selectedStudent);
       
-      if (selectedSubject) {
+      if (selectedSubject && selectedSubject !== '_all_') {
         studentMarks = studentMarks.filter(mark => mark.subject === selectedSubject);
       }
       
@@ -114,7 +113,7 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
           <label className="text-sm font-medium mb-2 block">Select Student</label>
           <Select value={selectedStudent} onValueChange={(value) => {
             setSelectedStudent(value);
-            setSelectedSubject("");
+            setSelectedSubject("_all_");
           }}>
             <SelectTrigger>
               <SelectValue placeholder="Choose a student" />
@@ -140,7 +139,7 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
               <SelectValue placeholder="All Subjects" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Subjects</SelectItem>
+              <SelectItem value="_all_">All Subjects</SelectItem>
               {availableSubjects.map((subject) => (
                 <SelectItem key={subject} value={subject}>
                   {subject}
@@ -219,7 +218,7 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
         <CardHeader>
           <CardTitle>
             {selectedStudent 
-              ? `Performance Analysis - ${getStudentName(selectedStudent)}${selectedSubject ? ` - ${selectedSubject}` : ''}`
+              ? `Performance Analysis - ${getStudentName(selectedStudent)}${selectedSubject && selectedSubject !== '_all_' ? ` - ${selectedSubject}` : ''}`
               : "Select a student to view performance analysis"
             }
           </CardTitle>
