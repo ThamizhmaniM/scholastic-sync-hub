@@ -201,6 +201,98 @@ export async function getAttendanceSummaryFromDb(studentId?: string) {
   });
 }
 
+// Weekly Test Marks Functions
+export async function getWeeklyTestMarks(studentId?: string, weekNumber?: number, year?: number) {
+  let query = supabase
+    .from('weekly_test_marks')
+    .select('*')
+    .order('test_date', { ascending: false });
+  
+  if (studentId) {
+    query = query.eq('student_id', studentId);
+  }
+  
+  if (weekNumber && year) {
+    query = query.eq('week_number', weekNumber).eq('year', year);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error('Error fetching weekly test marks:', error);
+    return [];
+  }
+  
+  return data || [];
+}
+
+export async function createWeeklyTestMark(mark: Omit<WeeklyTestMark, "id">) {
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User must be authenticated to create test marks');
+  }
+
+  const { data, error } = await supabase
+    .from('weekly_test_marks')
+    .insert({
+      student_id: mark.studentId,
+      subject: mark.subject,
+      week_number: mark.weekNumber,
+      year: mark.year,
+      marks_obtained: mark.marksObtained,
+      total_marks: mark.totalMarks,
+      test_date: mark.testDate,
+      remarks: mark.remarks,
+      user_id: user.id
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('Error creating weekly test mark:', error);
+    return null;
+  }
+  
+  return data;
+}
+
+export async function updateWeeklyTestMark(mark: WeeklyTestMark) {
+  const { data, error } = await supabase
+    .from('weekly_test_marks')
+    .update({
+      marks_obtained: mark.marksObtained,
+      total_marks: mark.totalMarks,
+      test_date: mark.testDate,
+      remarks: mark.remarks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', mark.id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error(`Error updating weekly test mark with ID ${mark.id}:`, error);
+    return null;
+  }
+  
+  return data;
+}
+
+export async function deleteWeeklyTestMark(id: string) {
+  const { error } = await supabase
+    .from('weekly_test_marks')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error(`Error deleting weekly test mark with ID ${id}:`, error);
+    return false;
+  }
+  
+  return true;
+}
+
 // Dashboard Statistics Functions
 export async function getDashboardStats() {
   try {
@@ -250,5 +342,3 @@ export async function getDashboardStats() {
     };
   }
 }
-
-// Remove migration function as it's no longer needed with user-specific data

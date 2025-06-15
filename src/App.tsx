@@ -12,6 +12,7 @@ import Groups from "./pages/Groups";
 import Timetable from "./pages/Timetable";
 import Tests from "./pages/Tests";
 import Attendance from "./pages/Attendance";
+import WeeklyMarks from "./pages/WeeklyMarks";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,11 @@ const App = () => (
             <Route path="/attendance" element={
               <ProtectedRoute>
                 <Attendance />
+              </ProtectedRoute>
+            } />
+            <Route path="/weekly-marks" element={
+              <ProtectedRoute>
+                <WeeklyMarks />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

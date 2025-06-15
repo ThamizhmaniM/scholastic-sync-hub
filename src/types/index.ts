@@ -49,3 +49,15 @@ export interface AttendanceSummary {
   presentDays: number;
   percentage: number;
 }
+
+export interface WeeklyTestMark {
+  id: string;
+  studentId: string;
+  subject: string;
+  weekNumber: number;
+  year: number;
+  marksObtained: number;
+  totalMarks: number;
+  testDate: string;
+  remarks?: string;
+}

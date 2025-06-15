@@ -98,6 +98,59 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_test_marks: {
+        Row: {
+          created_at: string | null
+          id: string
+          marks_obtained: number
+          remarks: string | null
+          student_id: string
+          subject: string
+          test_date: string
+          total_marks: number
+          updated_at: string | null
+          user_id: string | null
+          week_number: number
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          marks_obtained: number
+          remarks?: string | null
+          student_id: string
+          subject: string
+          test_date: string
+          total_marks?: number
+          updated_at?: string | null
+          user_id?: string | null
+          week_number: number
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          marks_obtained?: number
+          remarks?: string | null
+          student_id?: string
+          subject?: string
+          test_date?: string
+          total_marks?: number
+          updated_at?: string | null
+          user_id?: string | null
+          week_number?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_test_marks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
