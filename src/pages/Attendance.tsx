@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import AttendanceForm from "@/components/attendance/AttendanceForm";
 import AttendanceSummaryComponent from "@/components/attendance/AttendanceSummary";
 import AttendanceCalendar from "@/components/attendance/AttendanceCalendar";
+import StudentAttendanceGrid from "@/components/attendance/StudentAttendanceGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStudents, markAttendanceInDb, getAttendanceSummaryFromDb, getAttendanceRecords } from "@/lib/supabase";
@@ -137,6 +138,7 @@ const Attendance = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="mark">Mark Attendance</TabsTrigger>
+            <TabsTrigger value="grid">Student Grid</TabsTrigger>
             <TabsTrigger value="calendar">Calendar View</TabsTrigger>
             <TabsTrigger value="summary">Attendance Summary</TabsTrigger>
           </TabsList>
@@ -145,6 +147,13 @@ const Attendance = () => {
             <AttendanceForm
               students={studentList}
               onMarkAttendance={handleMarkAttendance}
+            />
+          </TabsContent>
+          
+          <TabsContent value="grid" className="mt-6">
+            <StudentAttendanceGrid 
+              attendanceRecords={attendanceRecords}
+              students={studentList}
             />
           </TabsContent>
           
