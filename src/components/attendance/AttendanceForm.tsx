@@ -5,11 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Student } from "@/types";
 import { toast } from "sonner";
+import { CLASSES } from "@/lib/mock-data";
 
 interface AttendanceFormProps {
   students: Student[];
@@ -20,13 +28,19 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<string>("all");
+
+  // Filter students by selected class
+  const filteredStudents = students.filter(
+    (student) => selectedClass === "all" || student.class === selectedClass
+  );
 
   // Handle select all checkbox
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(students.map(student => student.id));
+      setSelectedStudents(filteredStudents.map(student => student.id));
     }
     setSelectAll(!selectAll);
   };
@@ -38,6 +52,13 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
         ? prev.filter(id => id !== studentId)
         : [...prev, studentId]
     );
+  };
+
+  // Reset selections when class filter changes
+  const handleClassChange = (value: string) => {
+    setSelectedClass(value);
+    setSelectedStudents([]);
+    setSelectAll(false);
   };
 
   // Mark selected students as present
@@ -72,12 +93,14 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
     setSelectAll(false);
   };
 
-  // Mark all students present for selected date
+  // Mark all filtered students present for selected date
   const markAllPresent = () => {
-    const allStudentIds = students.map(student => student.id);
+    const allFilteredStudentIds = filteredStudents.map(student => student.id);
     const dateStr = selectedDate.toISOString().split('T')[0];
-    onMarkAttendance(allStudentIds, dateStr, 'present');
-    toast.success(`Marked all students as present for ${format(selectedDate, 'PPP')}`);
+    onMarkAttendance(allFilteredStudentIds, dateStr, 'present');
+    
+    const classText = selectedClass === "all" ? "all" : `Class ${selectedClass}`;
+    toast.success(`Marked all students in ${classText} as present for ${format(selectedDate, 'PPP')}`);
     setSelectedStudents([]);
     setSelectAll(false);
   };
@@ -126,10 +149,27 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
       {/* Student Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Mark Attendance for {format(selectedDate, 'PPP')}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Select students and mark them as present or absent
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Mark Attendance for {format(selectedDate, 'PPP')}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Select students and mark them as present or absent
+              </p>
+            </div>
+            <Select value={selectedClass} onValueChange={handleClassChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {CLASSES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    Class {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border">
@@ -152,7 +192,7 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
                 </tr>
               </thead>
               <tbody>
-                {students.map(student => (
+                {filteredStudents.map(student => (
                   <tr key={student.id} className="border-b hover:bg-muted/50">
                     <td className="py-3 px-4">
                       <Checkbox
@@ -185,7 +225,8 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
 
           <div className="flex justify-between items-center">
             <div className="text-sm text-muted-foreground">
-              {selectedStudents.length} of {students.length} students selected
+              {selectedStudents.length} of {filteredStudents.length} students selected
+              {selectedClass !== "all" && ` (Class ${selectedClass})`}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={markAbsent} disabled={selectedStudents.length === 0}>
