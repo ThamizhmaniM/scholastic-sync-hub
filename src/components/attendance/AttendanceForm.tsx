@@ -1,7 +1,7 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Student } from "@/types";
@@ -29,11 +29,14 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Filter students by selected class
-  const filteredStudents = students.filter(
-    (student) => selectedClass === "all" || student.class === selectedClass
-  );
+  // Filter students by selected class and search query
+  const filteredStudents = students.filter((student) => {
+    const matchesClass = selectedClass === "all" || student.class === selectedClass;
+    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesClass && matchesSearch;
+  });
 
   // Handle select all checkbox
   const handleSelectAll = () => {
@@ -54,9 +57,15 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
     );
   };
 
-  // Reset selections when class filter changes
+  // Reset selections when class filter or search changes
   const handleClassChange = (value: string) => {
     setSelectedClass(value);
+    setSelectedStudents([]);
+    setSelectAll(false);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
     setSelectedStudents([]);
     setSelectAll(false);
   };
@@ -156,19 +165,31 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
                 Select students and mark them as present or absent
               </p>
             </div>
-            <Select value={selectedClass} onValueChange={handleClassChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classes</SelectItem>
-                {CLASSES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    Class {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+              <Select value={selectedClass} onValueChange={handleClassChange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {CLASSES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      Class {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -227,6 +248,7 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
             <div className="text-sm text-muted-foreground">
               {selectedStudents.length} of {filteredStudents.length} students selected
               {selectedClass !== "all" && ` (Class ${selectedClass})`}
+              {searchQuery && ` (Search: "${searchQuery}")`}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={markAbsent} disabled={selectedStudents.length === 0}>

@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import StudentList from "@/components/students/StudentList";
 import StudentForm from "@/components/students/StudentForm";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Select,
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Search } from "lucide-react";
 import { 
   getStudents, 
   createStudent, 
@@ -27,6 +29,7 @@ const Students = () => {
   const [editingStudent, setEditingStudent] = useState<Student | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     loadStudents();
@@ -109,9 +112,11 @@ const Students = () => {
     setEditingStudent(undefined);
   };
 
-  const filteredStudents = studentList.filter(
-    (student) => selectedClass === "all" || student.class === selectedClass
-  );
+  const filteredStudents = studentList.filter((student) => {
+    const matchesClass = selectedClass === "all" || student.class === selectedClass;
+    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesClass && matchesSearch;
+  });
 
   if (loading) {
     return (
@@ -129,6 +134,16 @@ const Students = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Students</h1>
           <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-64"
+              />
+            </div>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by class" />
