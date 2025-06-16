@@ -11,6 +11,20 @@ interface AttendanceCalendarProps {
   students: Student[];
 }
 
+// Helper function to format date for IST without timezone issues
+const formatDateForIST = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Helper function to parse date string to local date
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 export const AttendanceCalendar = ({ attendanceRecords, students }: AttendanceCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -20,11 +34,21 @@ export const AttendanceCalendar = ({ attendanceRecords, students }: AttendanceCa
 
   // Get attendance data for a specific date
   const getAttendanceForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    const dayRecords = attendanceRecords.filter(record => record.date === dateStr);
+    const dateStr = formatDateForIST(date);
+    console.log(`Getting attendance for date: ${dateStr}`);
+    
+    const dayRecords = attendanceRecords.filter(record => {
+      // Ensure we're comparing dates correctly without timezone issues
+      const recordDate = record.date;
+      console.log(`Comparing record date: ${recordDate} with ${dateStr}`);
+      return recordDate === dateStr;
+    });
+    
     const presentCount = dayRecords.filter(record => record.status === 'present').length;
     const absentCount = dayRecords.filter(record => record.status === 'absent').length;
     const totalRecords = dayRecords.length;
+    
+    console.log(`Date: ${dateStr}, Present: ${presentCount}, Absent: ${absentCount}, Total: ${totalRecords}`);
     
     return {
       present: presentCount,
@@ -58,7 +82,7 @@ export const AttendanceCalendar = ({ attendanceRecords, students }: AttendanceCa
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Attendance Calendar</CardTitle>
+          <CardTitle>Attendance Calendar (IST)</CardTitle>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
               <ChevronLeft className="h-4 w-4" />
@@ -149,6 +173,12 @@ export const AttendanceCalendar = ({ attendanceRecords, students }: AttendanceCa
             <div className="w-4 h-4 bg-red-500 rounded"></div>
             <span>&lt;60% attendance</span>
           </div>
+        </div>
+
+        {/* Debug Info */}
+        <div className="mt-4 p-2 bg-gray-50 rounded text-xs text-gray-500">
+          <div>Current IST Date: {formatDateForIST(new Date())}</div>
+          <div>Total Records: {attendanceRecords.length}</div>
         </div>
       </CardContent>
     </Card>

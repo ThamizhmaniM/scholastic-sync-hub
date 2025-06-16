@@ -24,6 +24,14 @@ interface AttendanceFormProps {
   onMarkAttendance: (studentIds: string[], date: string, status: 'present' | 'absent') => void;
 }
 
+// Helper function to format date for IST without timezone issues
+const formatDateForIST = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
@@ -77,7 +85,8 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
       return;
     }
     
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = formatDateForIST(selectedDate);
+    console.log(`Marking present for date: ${dateStr}`);
     onMarkAttendance(selectedStudents, dateStr, 'present');
     toast.success(`Marked ${selectedStudents.length} students as present for ${format(selectedDate, 'PPP')}`);
     
@@ -93,7 +102,8 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
       return;
     }
     
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = formatDateForIST(selectedDate);
+    console.log(`Marking absent for date: ${dateStr}`);
     onMarkAttendance(selectedStudents, dateStr, 'absent');
     toast.success(`Marked ${selectedStudents.length} students as absent for ${format(selectedDate, 'PPP')}`);
     
@@ -105,7 +115,8 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
   // Mark all filtered students present for selected date
   const markAllPresent = () => {
     const allFilteredStudentIds = filteredStudents.map(student => student.id);
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = formatDateForIST(selectedDate);
+    console.log(`Marking all present for date: ${dateStr}`);
     onMarkAttendance(allFilteredStudentIds, dateStr, 'present');
     
     const classText = selectedClass === "all" ? "all" : `Class ${selectedClass}`;
@@ -119,7 +130,7 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
       {/* Calendar Date Picker */}
       <Card>
         <CardHeader>
-          <CardTitle>Select Date</CardTitle>
+          <CardTitle>Select Date (IST)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
@@ -151,6 +162,10 @@ export const AttendanceForm = ({ students, onMarkAttendance }: AttendanceFormPro
             <Button onClick={markAllPresent} variant="default">
               Mark All Present
             </Button>
+            
+            <div className="text-sm text-gray-500">
+              Selected: {formatDateForIST(selectedDate)}
+            </div>
           </div>
         </CardContent>
       </Card>
