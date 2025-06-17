@@ -1,18 +1,26 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Save } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay } from "date-fns";
 import { AttendanceRecord, Student } from "@/types";
+import { toast } from "sonner";
 
 interface StudentAttendanceGridProps {
   attendanceRecords: AttendanceRecord[];
   students: Student[];
   onMarkAttendance?: (studentIds: string[], date: string, status: 'present' | 'absent') => void;
   onRemoveAttendance?: (studentId: string, date: string) => void;
+}
+
+interface PendingChange {
+  studentId: string;
+  date: string;
+  action: 'mark' | 'remove';
+  status?: 'present' | 'absent';
 }
 
 // Helper function to format date for IST without timezone issues
@@ -27,9 +35,21 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
+  const [localAttendanceState, setLocalAttendanceState] = useState<{[key: string]: 'present' | 'absent' | null}>({});
 
   console.log('StudentAttendanceGrid - Attendance Records:', attendanceRecords);
   console.log('StudentAttendanceGrid - Students:', students);
+
+  // Initialize local state from attendance records
+  useEffect(() => {
+    const initialState: {[key: string]: 'present' | 'absent' | null} = {};
+    attendanceRecords.forEach(record => {
+      const key = `${record.studentId}-${record.date}`;
+      initialState[key] = record.status as 'present' | 'absent';
+    });
+    setLocalAttendanceState(initialState);
+  }, [attendanceRecords]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -45,48 +65,111 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
     return matchesSearch && matchesClass;
   });
 
-  // Get attendance status for a specific student and date
+  // Get attendance status for a specific student and date from local state
   const getAttendanceStatus = (studentId: string, date: Date) => {
     const dateStr = formatDateForIST(date);
-    console.log(`Looking for attendance - Student: ${studentId}, Date: ${dateStr}`);
-    
-    const record = attendanceRecords.find(
-      record => record.studentId === studentId && record.date === dateStr
-    );
-    
-    console.log(`Attendance status for ${studentId} on ${dateStr}:`, record?.status || 'not found');
-    return record?.status || null;
+    const key = `${studentId}-${dateStr}`;
+    return localAttendanceState[key] || null;
   };
 
   // Handle marking attendance directly in the grid
   const handleCellClick = (studentId: string, date: Date) => {
-    if (!onMarkAttendance) return;
+    if (!onMarkAttendance || !onRemoveAttendance) return;
     
-    const currentStatus = getAttendanceStatus(studentId, date);
     const dateStr = formatDateForIST(date);
+    const key = `${studentId}-${dateStr}`;
+    const currentStatus = localAttendanceState[key];
+    
+    let newStatus: 'present' | 'absent' | null;
+    let action: 'mark' | 'remove';
     
     // Cycle through: null -> present -> absent -> null (not marked)
     if (!currentStatus) {
       // Not marked -> Present
-      onMarkAttendance([studentId], dateStr, 'present');
+      newStatus = 'present';
+      action = 'mark';
     } else if (currentStatus === 'present') {
       // Present -> Absent
-      onMarkAttendance([studentId], dateStr, 'absent');
-    } else if (currentStatus === 'absent') {
+      newStatus = 'absent';
+      action = 'mark';
+    } else {
       // Absent -> Not marked (remove attendance)
-      if (onRemoveAttendance) {
-        onRemoveAttendance(studentId, dateStr);
+      newStatus = null;
+      action = 'remove';
+    }
+
+    // Update local state immediately for UI responsiveness
+    setLocalAttendanceState(prev => ({
+      ...prev,
+      [key]: newStatus
+    }));
+
+    // Add to pending changes
+    const pendingChange: PendingChange = {
+      studentId,
+      date: dateStr,
+      action,
+      status: newStatus === null ? undefined : newStatus
+    };
+
+    setPendingChanges(prev => {
+      // Remove any existing change for this student-date combination
+      const filtered = prev.filter(change => 
+        !(change.studentId === studentId && change.date === dateStr)
+      );
+      return [...filtered, pendingChange];
+    });
+  };
+
+  // Save all pending changes
+  const handleSaveChanges = async () => {
+    if (pendingChanges.length === 0) {
+      toast.info("No changes to save");
+      return;
+    }
+
+    try {
+      // Group changes by action type
+      const markChanges = pendingChanges.filter(change => change.action === 'mark');
+      const removeChanges = pendingChanges.filter(change => change.action === 'remove');
+
+      // Process mark changes
+      for (const change of markChanges) {
+        if (change.status && onMarkAttendance) {
+          await onMarkAttendance([change.studentId], change.date, change.status);
+        }
       }
+
+      // Process remove changes
+      for (const change of removeChanges) {
+        if (onRemoveAttendance) {
+          await onRemoveAttendance(change.studentId, change.date);
+        }
+      }
+
+      // Clear pending changes
+      setPendingChanges([]);
+      toast.success(`Saved ${pendingChanges.length} attendance changes`);
+    } catch (error) {
+      console.error('Error saving attendance changes:', error);
+      toast.error("Failed to save attendance changes");
     }
   };
 
   // Calculate monthly stats for a student
   const getStudentMonthlyStats = (studentId: string) => {
-    const studentRecords = attendanceRecords.filter(
-      record => record.studentId === studentId &&
-        record.date >= formatDateForIST(monthStart) &&
-        record.date <= formatDateForIST(monthEnd)
-    );
+    const monthStartStr = formatDateForIST(monthStart);
+    const monthEndStr = formatDateForIST(monthEnd);
+    
+    // Use local state for current stats
+    const studentRecords = monthDays.map(day => {
+      const dateStr = formatDateForIST(day);
+      const key = `${studentId}-${dateStr}`;
+      return {
+        date: dateStr,
+        status: localAttendanceState[key]
+      };
+    }).filter(record => record.status !== null);
     
     const presentDays = studentRecords.filter(record => record.status === 'present').length;
     const absentDays = studentRecords.filter(record => record.status === 'absent').length;
@@ -97,6 +180,11 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
+    if (pendingChanges.length > 0) {
+      toast.warning("Please save your changes before changing months");
+      return;
+    }
+    
     setCurrentDate(prev => {
       const newDate = new Date(prev);
       if (direction === 'prev') {
@@ -146,6 +234,12 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
+            {pendingChanges.length > 0 && (
+              <Button onClick={handleSaveChanges} className="bg-green-600 hover:bg-green-700">
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes ({pendingChanges.length})
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -154,6 +248,11 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
         <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
           <div className="font-medium mb-1">How to mark attendance:</div>
           <div>Click on any cell to mark attendance. Click again to cycle: Not Marked → Present → Absent → Not Marked</div>
+          {pendingChanges.length > 0 && (
+            <div className="mt-2 font-medium text-orange-600">
+              You have {pendingChanges.length} unsaved changes. Click "Save Changes" to save them.
+            </div>
+          )}
         </div>
 
         {/* Legend */}
@@ -221,13 +320,19 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
                     {monthDays.map(day => {
                       const status = getAttendanceStatus(student.id, day);
                       const isTodayDate = isToday(day);
+                      const dateStr = formatDateForIST(day);
+                      const hasPendingChange = pendingChanges.some(change => 
+                        change.studentId === student.id && change.date === dateStr
+                      );
                       
                       return (
                         <td
                           key={`${student.id}-${day.toISOString()}`}
                           className={`border border-gray-300 p-1 text-center ${
                             isTodayDate ? 'bg-blue-50' : ''
-                          } ${onMarkAttendance ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+                          } ${onMarkAttendance ? 'cursor-pointer hover:bg-gray-100' : ''} ${
+                            hasPendingChange ? 'ring-2 ring-orange-300' : ''
+                          }`}
                           onClick={() => onMarkAttendance && handleCellClick(student.id, day)}
                           title={onMarkAttendance ? 'Click to cycle: Not Marked → Present → Absent → Not Marked' : ''}
                         >
@@ -267,6 +372,11 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
           Showing {filteredStudents.length} students 
           {selectedClass !== "all" && ` from Class ${selectedClass}`} 
           for {format(currentDate, 'MMMM yyyy')}
+          {pendingChanges.length > 0 && (
+            <span className="ml-4 text-orange-600 font-medium">
+              • {pendingChanges.length} unsaved changes
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
