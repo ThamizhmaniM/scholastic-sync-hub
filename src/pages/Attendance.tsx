@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import AttendanceForm from "@/components/attendance/AttendanceForm";
@@ -154,6 +153,7 @@ const Attendance = () => {
             <StudentAttendanceGrid 
               attendanceRecords={attendanceRecords}
               students={studentList}
+              onMarkAttendance={handleMarkAttendance}
             />
           </TabsContent>
           
