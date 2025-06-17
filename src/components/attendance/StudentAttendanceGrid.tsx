@@ -12,6 +12,7 @@ interface StudentAttendanceGridProps {
   attendanceRecords: AttendanceRecord[];
   students: Student[];
   onMarkAttendance?: (studentIds: string[], date: string, status: 'present' | 'absent') => void;
+  onRemoveAttendance?: (studentId: string, date: string) => void;
 }
 
 // Helper function to format date for IST without timezone issues
@@ -22,7 +23,7 @@ const formatDateForIST = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAttendance }: StudentAttendanceGridProps) => {
+export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAttendance, onRemoveAttendance }: StudentAttendanceGridProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");
@@ -49,7 +50,6 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
     const dateStr = formatDateForIST(date);
     console.log(`Looking for attendance - Student: ${studentId}, Date: ${dateStr}`);
     
-    // Use only studentId field as per the type definition
     const record = attendanceRecords.find(
       record => record.studentId === studentId && record.date === dateStr
     );
@@ -65,18 +65,18 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
     const currentStatus = getAttendanceStatus(studentId, date);
     const dateStr = formatDateForIST(date);
     
-    // Cycle through: null -> present -> absent -> null
-    let newStatus: 'present' | 'absent' | null = null;
+    // Cycle through: null -> present -> absent -> null (not marked)
     if (!currentStatus) {
-      newStatus = 'present';
+      // Not marked -> Present
+      onMarkAttendance([studentId], dateStr, 'present');
     } else if (currentStatus === 'present') {
-      newStatus = 'absent';
-    } else {
-      newStatus = 'present'; // Reset to present instead of null for better UX
-    }
-    
-    if (newStatus) {
-      onMarkAttendance([studentId], dateStr, newStatus);
+      // Present -> Absent
+      onMarkAttendance([studentId], dateStr, 'absent');
+    } else if (currentStatus === 'absent') {
+      // Absent -> Not marked (remove attendance)
+      if (onRemoveAttendance) {
+        onRemoveAttendance(studentId, dateStr);
+      }
     }
   };
 
@@ -153,22 +153,22 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
         {/* Instructions */}
         <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
           <div className="font-medium mb-1">How to mark attendance:</div>
-          <div>Click on any cell to mark attendance. Click again to cycle between Present → Absent → Present</div>
+          <div>Click on any cell to mark attendance. Click again to cycle: Not Marked → Present → Absent → Not Marked</div>
         </div>
 
         {/* Legend */}
         <div className="mb-4 flex flex-wrap gap-4 text-sm text-gray-600">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-500 rounded cursor-pointer"></div>
-            <span>Present (P) - Click to mark</span>
+            <span>Present (P)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-500 rounded cursor-pointer"></div>
-            <span>Absent (A) - Click to mark</span>
+            <span>Absent (A)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gray-200 rounded cursor-pointer"></div>
-            <span>Not Marked (-) - Click to mark</span>
+            <span>Not Marked (-)</span>
           </div>
         </div>
 
@@ -229,7 +229,7 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students, onMarkAtten
                             isTodayDate ? 'bg-blue-50' : ''
                           } ${onMarkAttendance ? 'cursor-pointer hover:bg-gray-100' : ''}`}
                           onClick={() => onMarkAttendance && handleCellClick(student.id, day)}
-                          title={onMarkAttendance ? 'Click to mark/change attendance' : ''}
+                          title={onMarkAttendance ? 'Click to cycle: Not Marked → Present → Absent → Not Marked' : ''}
                         >
                           {status === 'present' && (
                             <div className="w-6 h-6 bg-green-500 rounded text-white text-xs flex items-center justify-center mx-auto">

@@ -6,7 +6,7 @@ import AttendanceCalendar from "@/components/attendance/AttendanceCalendar";
 import StudentAttendanceGrid from "@/components/attendance/StudentAttendanceGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getStudents, markAttendanceInDb, getAttendanceSummaryFromDb, getAttendanceRecords } from "@/lib/supabase";
+import { getStudents, markAttendanceInDb, getAttendanceSummaryFromDb, getAttendanceRecords, supabase } from "@/lib/supabase";
 import { AttendanceSummary, Student, AttendanceRecord } from "@/types";
 import { toast } from "sonner";
 
@@ -69,6 +69,44 @@ const Attendance = () => {
     } catch (error) {
       console.error('Error marking attendance:', error);
       toast.error("Failed to mark attendance");
+    }
+  };
+
+  // Remove attendance for a student on a specific date
+  const handleRemoveAttendance = async (studentId: string, date: string) => {
+    try {
+      // Find and remove the attendance record
+      const recordToRemove = attendanceRecords.find(
+        record => record.studentId === studentId && record.date === date
+      );
+      
+      if (recordToRemove) {
+        // You might need to add a delete function to your supabase library
+        // For now, we'll use the supabase client directly
+        const { error } = await supabase
+          .from('attendance_records')
+          .delete()
+          .eq('student_id', studentId)
+          .eq('date', date);
+          
+        if (error) {
+          throw error;
+        }
+        
+        // Update attendance summary and records
+        const [summary, records] = await Promise.all([
+          getAttendanceSummaryFromDb(),
+          getAttendanceRecords()
+        ]);
+        
+        setAttendanceSummary(summary);
+        setAttendanceRecords(records);
+        
+        toast.success("Attendance removed successfully");
+      }
+    } catch (error) {
+      console.error('Error removing attendance:', error);
+      toast.error("Failed to remove attendance");
     }
   };
 
@@ -154,6 +192,7 @@ const Attendance = () => {
               attendanceRecords={attendanceRecords}
               students={studentList}
               onMarkAttendance={handleMarkAttendance}
+              onRemoveAttendance={handleRemoveAttendance}
             />
           </TabsContent>
           
