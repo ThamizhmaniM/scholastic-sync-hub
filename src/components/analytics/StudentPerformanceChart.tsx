@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { Student, WeeklyTestMark } from "@/types";
 import { TrendingUp, BarChart3 } from "lucide-react";
 
@@ -15,17 +16,21 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string>("_all_");
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
-  const [chartType, setChartType] = useState<"line" | "bar">("line");
+  const [chartType, setChartType] = useState<"line" | "bar" | "area">("line");
   const [chartData, setChartData] = useState<any[]>([]);
 
   const chartConfig = {
     percentage: {
       label: "Percentage",
-      color: "hsl(var(--chart-1))",
+      color: "#3b82f6",
     },
     marks: {
       label: "Marks Obtained",
-      color: "hsl(var(--chart-2))",
+      color: "#10b981",
+    },
+    total: {
+      label: "Total Marks",
+      color: "#f59e0b",
     },
   };
 
@@ -105,6 +110,163 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
 
   const trend = getPerformanceTrend();
 
+  const renderChart = () => {
+    if (chartType === "line") {
+      return (
+        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
+          <XAxis 
+            dataKey="week" 
+            tick={{ fontSize: 12, fill: "#64748b" }}
+            axisLine={{ stroke: "#94a3b8" }}
+            tickLine={{ stroke: "#94a3b8" }}
+          />
+          <YAxis 
+            domain={[0, 100]}
+            tick={{ fontSize: 12, fill: "#64748b" }}
+            axisLine={{ stroke: "#94a3b8" }}
+            tickLine={{ stroke: "#94a3b8" }}
+            label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#64748b' } }}
+          />
+          <ChartTooltip 
+            content={
+              <ChartTooltipContent 
+                formatter={(value, name) => [
+                  `${value}${name === 'percentage' ? '%' : ''}`,
+                  name === 'percentage' ? 'Percentage' : 'Marks'
+                ]}
+                labelFormatter={(label, payload) => {
+                  if (payload && payload[0]) {
+                    const data = payload[0].payload;
+                    return `Week ${data.weekNumber} (${data.year}) - ${data.subject}`;
+                  }
+                  return label;
+                }}
+              />
+            }
+          />
+          <Line 
+            type="monotone" 
+            dataKey="percentage" 
+            stroke="#3b82f6"
+            strokeWidth={3}
+            dot={{ 
+              fill: "#3b82f6", 
+              strokeWidth: 2, 
+              r: 6,
+              stroke: "#ffffff"
+            }}
+            activeDot={{ 
+              r: 8, 
+              fill: "#1d4ed8",
+              stroke: "#ffffff",
+              strokeWidth: 2
+            }}
+          />
+        </LineChart>
+      );
+    } else if (chartType === "area") {
+      return (
+        <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <defs>
+            <linearGradient id="colorPercentage" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
+          <XAxis 
+            dataKey="week" 
+            tick={{ fontSize: 12, fill: "#64748b" }}
+            axisLine={{ stroke: "#94a3b8" }}
+            tickLine={{ stroke: "#94a3b8" }}
+          />
+          <YAxis 
+            domain={[0, 100]}
+            tick={{ fontSize: 12, fill: "#64748b" }}
+            axisLine={{ stroke: "#94a3b8" }}
+            tickLine={{ stroke: "#94a3b8" }}
+            label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#64748b' } }}
+          />
+          <ChartTooltip 
+            content={
+              <ChartTooltipContent 
+                formatter={(value, name) => [
+                  `${value}${name === 'percentage' ? '%' : ''}`,
+                  name === 'percentage' ? 'Percentage' : 'Marks'
+                ]}
+                labelFormatter={(label, payload) => {
+                  if (payload && payload[0]) {
+                    const data = payload[0].payload;
+                    return `Week ${data.weekNumber} (${data.year}) - ${data.subject}`;
+                  }
+                  return label;
+                }}
+              />
+            }
+          />
+          <Area 
+            type="monotone" 
+            dataKey="percentage" 
+            stroke="#3b82f6"
+            strokeWidth={3}
+            fillOpacity={1}
+            fill="url(#colorPercentage)"
+          />
+        </AreaChart>
+      );
+    } else {
+      return (
+        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <defs>
+            <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.9}/>
+              <stop offset="95%" stopColor="#059669" stopOpacity={0.7}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
+          <XAxis 
+            dataKey="week" 
+            tick={{ fontSize: 12, fill: "#64748b" }}
+            axisLine={{ stroke: "#94a3b8" }}
+            tickLine={{ stroke: "#94a3b8" }}
+          />
+          <YAxis 
+            domain={[0, 100]}
+            tick={{ fontSize: 12, fill: "#64748b" }}
+            axisLine={{ stroke: "#94a3b8" }}
+            tickLine={{ stroke: "#94a3b8" }}
+            label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#64748b' } }}
+          />
+          <ChartTooltip 
+            content={
+              <ChartTooltipContent 
+                formatter={(value, name) => [
+                  `${value}${name === 'percentage' ? '%' : ''}`,
+                  name === 'percentage' ? 'Percentage' : 'Marks'
+                ]}
+                labelFormatter={(label, payload) => {
+                  if (payload && payload[0]) {
+                    const data = payload[0].payload;
+                    return `Week ${data.weekNumber} (${data.year}) - ${data.subject}`;
+                  }
+                  return label;
+                }}
+              />
+            }
+          />
+          <Bar 
+            dataKey="percentage" 
+            fill="url(#colorBar)"
+            radius={[6, 6, 0, 0]}
+            stroke="#10b981"
+            strokeWidth={1}
+          />
+        </BarChart>
+      );
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Controls */}
@@ -151,12 +313,13 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
 
         <div>
           <label className="text-sm font-medium mb-2 block">Chart Type</label>
-          <Select value={chartType} onValueChange={(value: "line" | "bar") => setChartType(value)}>
+          <Select value={chartType} onValueChange={(value: "line" | "bar" | "area") => setChartType(value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="line">Line Chart</SelectItem>
+              <SelectItem value="area">Area Chart</SelectItem>
               <SelectItem value="bar">Bar Chart</SelectItem>
             </SelectContent>
           </Select>
@@ -166,46 +329,61 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
       {/* Performance Summary */}
       {selectedStudent && chartData.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Performance</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-blue-800">Average Performance</CardTitle>
+              <BarChart3 className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{averagePerformance}%</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-blue-900">{averagePerformance}%</div>
+              <p className="text-xs text-blue-700">
                 Based on {chartData.length} test{chartData.length !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={`bg-gradient-to-br border-2 ${
+            trend.trend === 'up' 
+              ? 'from-green-50 to-green-100 border-green-200' 
+              : trend.trend === 'down' 
+                ? 'from-red-50 to-red-100 border-red-200'
+                : 'from-gray-50 to-gray-100 border-gray-200'
+          }`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Trend</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className={`text-sm font-medium ${
+                trend.trend === 'up' ? 'text-green-800' : 
+                trend.trend === 'down' ? 'text-red-800' : 'text-gray-800'
+              }`}>Recent Trend</CardTitle>
+              <TrendingUp className={`h-4 w-4 ${
+                trend.trend === 'up' ? 'text-green-600' : 
+                trend.trend === 'down' ? 'text-red-600' : 'text-gray-600'
+              }`} />
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${
-                trend.trend === 'up' ? 'text-green-600' : 
-                trend.trend === 'down' ? 'text-red-600' : 
-                'text-gray-600'
+                trend.trend === 'up' ? 'text-green-900' : 
+                trend.trend === 'down' ? 'text-red-900' : 
+                'text-gray-900'
               }`}>
                 {trend.trend === 'up' ? '↗' : trend.trend === 'down' ? '↘' : '→'}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className={`text-xs ${
+                trend.trend === 'up' ? 'text-green-700' : 
+                trend.trend === 'down' ? 'text-red-700' : 'text-gray-700'
+              }`}>
                 {trend.change > 0 ? `${trend.change}% change` : 'Stable performance'}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-purple-800">Total Tests</CardTitle>
+              <BarChart3 className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{chartData.length}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-purple-900">{chartData.length}</div>
+              <p className="text-xs text-purple-700">
                 Tests completed
               </p>
             </CardContent>
@@ -214,97 +392,33 @@ const StudentPerformanceChart = ({ students, marks }: StudentPerformanceChartPro
       )}
 
       {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+          <CardTitle className="text-white">
             {selectedStudent 
               ? `Performance Analysis - ${getStudentName(selectedStudent)}${selectedSubject && selectedSubject !== '_all_' ? ` - ${selectedSubject}` : ''}`
               : "Select a student to view performance analysis"
             }
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {!selectedStudent ? (
             <div className="flex items-center justify-center h-64 text-muted-foreground">
-              Please select a student to view their performance chart
+              <div className="text-center">
+                <BarChart3 className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg">Please select a student to view their performance chart</p>
+              </div>
             </div>
           ) : chartData.length === 0 ? (
             <div className="flex items-center justify-center h-64 text-muted-foreground">
-              No test data available for this student
+              <div className="text-center">
+                <TrendingUp className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg">No test data available for this student</p>
+              </div>
             </div>
           ) : (
-            <ChartContainer config={chartConfig} className="h-80">
-              {chartType === "line" ? (
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="week" 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    domain={[0, 100]}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <ChartTooltip 
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value, name) => [
-                          `${value}${name === 'percentage' ? '%' : ''}`,
-                          name === 'percentage' ? 'Percentage' : 'Marks'
-                        ]}
-                        labelFormatter={(label, payload) => {
-                          if (payload && payload[0]) {
-                            const data = payload[0].payload;
-                            return `Week ${data.weekNumber} (${data.year}) - ${data.subject}`;
-                          }
-                          return label;
-                        }}
-                      />
-                    }
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="percentage" 
-                    stroke="var(--color-percentage)" 
-                    strokeWidth={2}
-                    dot={{ fill: "var(--color-percentage)", strokeWidth: 2 }}
-                  />
-                </LineChart>
-              ) : (
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="week" 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    domain={[0, 100]}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <ChartTooltip 
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value, name) => [
-                          `${value}${name === 'percentage' ? '%' : ''}`,
-                          name === 'percentage' ? 'Percentage' : 'Marks'
-                        ]}
-                        labelFormatter={(label, payload) => {
-                          if (payload && payload[0]) {
-                            const data = payload[0].payload;
-                            return `Week ${data.weekNumber} (${data.year}) - ${data.subject}`;
-                          }
-                          return label;
-                        }}
-                      />
-                    }
-                  />
-                  <Bar 
-                    dataKey="percentage" 
-                    fill="var(--color-percentage)"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              )}
+            <ChartContainer config={chartConfig} className="h-96">
+              {renderChart()}
             </ChartContainer>
           )}
         </CardContent>
