@@ -122,7 +122,19 @@ export async function getAttendanceRecords(studentId?: string) {
     return [];
   }
   
-  return data || [];
+  // Transform the data to ensure consistent field naming
+  const transformedData = (data || []).map(record => ({
+    id: record.id,
+    studentId: record.student_id, // Map student_id to studentId for consistency
+    student_id: record.student_id, // Keep both for compatibility
+    date: record.date,
+    status: record.status,
+    created_at: record.created_at,
+    user_id: record.user_id
+  }));
+  
+  console.log('Transformed attendance records:', transformedData);
+  return transformedData;
 }
 
 export async function markAttendanceInDb(record: Omit<AttendanceRecord, "id">) {

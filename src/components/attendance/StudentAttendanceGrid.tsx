@@ -24,6 +24,9 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students }: StudentAt
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
 
+  console.log('StudentAttendanceGrid - Attendance Records:', attendanceRecords);
+  console.log('StudentAttendanceGrid - Students:', students);
+
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -36,18 +39,33 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students }: StudentAt
   // Get attendance status for a specific student and date
   const getAttendanceStatus = (studentId: string, date: Date) => {
     const dateStr = formatDateForIST(date);
+    console.log(`Looking for attendance - Student: ${studentId}, Date: ${dateStr}`);
+    
+    // Handle both studentId and student_id field names from database
     const record = attendanceRecords.find(
-      record => record.studentId === studentId && record.date === dateStr
+      record => {
+        const recordStudentId = record.studentId || record.student_id;
+        const isMatch = recordStudentId === studentId && record.date === dateStr;
+        if (isMatch) {
+          console.log(`Found matching record:`, record);
+        }
+        return isMatch;
+      }
     );
+    
+    console.log(`Attendance status for ${studentId} on ${dateStr}:`, record?.status || 'not found');
     return record?.status || null;
   };
 
   // Calculate monthly stats for a student
   const getStudentMonthlyStats = (studentId: string) => {
     const studentRecords = attendanceRecords.filter(
-      record => record.studentId === studentId &&
-      record.date >= formatDateForIST(monthStart) &&
-      record.date <= formatDateForIST(monthEnd)
+      record => {
+        const recordStudentId = record.studentId || record.student_id;
+        return recordStudentId === studentId &&
+        record.date >= formatDateForIST(monthStart) &&
+        record.date <= formatDateForIST(monthEnd);
+      }
     );
     
     const presentDays = studentRecords.filter(record => record.status === 'present').length;
@@ -101,6 +119,13 @@ export const StudentAttendanceGrid = ({ attendanceRecords, students }: StudentAt
         </div>
       </CardHeader>
       <CardContent>
+        {/* Debug Information */}
+        <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+          <div>Total Students: {students.length}</div>
+          <div>Total Attendance Records: {attendanceRecords.length}</div>
+          <div>Current Month: {format(currentDate, 'MMMM yyyy')}</div>
+        </div>
+
         {/* Legend */}
         <div className="mb-4 flex flex-wrap gap-4 text-sm text-gray-600">
           <div className="flex items-center gap-2">

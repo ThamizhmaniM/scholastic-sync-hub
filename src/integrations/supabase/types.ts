@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_accounts: {
+        Row: {
+          created_at: string
+          id: string
+          is_master: boolean
+          password_hash: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_master?: boolean
+          password_hash: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_master?: boolean
+          password_hash?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       attendance_records: {
         Row: {
           created_at: string | null
@@ -40,6 +67,47 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      managed_users: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          created_by_admin: string | null
+          email: string
+          full_name: string | null
+          id: string
+          password: string
+          student_id: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          created_by_admin?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          password: string
+          student_id?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          created_by_admin?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          password?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "managed_users_created_by_admin_fkey"
+            columns: ["created_by_admin"]
+            isOneToOne: false
+            referencedRelation: "admin_accounts"
             referencedColumns: ["id"]
           },
         ]
