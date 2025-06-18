@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import WeeklyMarksForm from "@/components/marks/WeeklyMarksForm";
@@ -8,9 +7,10 @@ import ClassPerformanceOverview from "@/components/analytics/ClassPerformanceOve
 import { getStudents, getWeeklyTestMarks, createWeeklyTestMark, updateWeeklyTestMark, deleteWeeklyTestMark } from "@/lib/supabase";
 import { Student, WeeklyTestMark } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Plus, BookOpen, BarChart3 } from "lucide-react";
+import { Plus, BookOpen, BarChart3, FileDown, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { exportWeeklyMarksToPDF, exportWeeklyMarksToExcel } from "@/utils/exportUtils";
 
 const WeeklyMarks = () => {
   const { toast } = useToast();
@@ -142,6 +142,22 @@ const WeeklyMarks = () => {
     setActiveTab(value);
   };
 
+  const handleExportMarksPDF = () => {
+    exportWeeklyMarksToPDF(marks, students, filters);
+    toast({
+      title: "Success",
+      description: "Weekly marks exported as PDF successfully",
+    });
+  };
+
+  const handleExportMarksExcel = () => {
+    exportWeeklyMarksToExcel(marks, students, filters);
+    toast({
+      title: "Success", 
+      description: "Weekly marks exported as Excel successfully",
+    });
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -160,10 +176,20 @@ const WeeklyMarks = () => {
             <BookOpen className="h-6 w-6" />
             <h1 className="text-2xl font-bold">Weekly Test Marks</h1>
           </div>
-          <Button onClick={() => handleTabChange(activeTab === 'add' ? 'view' : 'add')} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            {activeTab === 'add' ? 'Cancel' : 'Add Marks'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleExportMarksPDF} variant="outline" className="flex items-center gap-2">
+              <FileDown className="h-4 w-4" />
+              Export PDF
+            </Button>
+            <Button onClick={handleExportMarksExcel} variant="outline" className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Export Excel
+            </Button>
+            <Button onClick={() => handleTabChange(activeTab === 'add' ? 'view' : 'add')} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              {activeTab === 'add' ? 'Cancel' : 'Add Marks'}
+            </Button>
+          </div>
         </div>
 
         {students.length === 0 ? (

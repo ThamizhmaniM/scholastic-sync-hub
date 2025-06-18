@@ -6,9 +6,13 @@ import AttendanceCalendar from "@/components/attendance/AttendanceCalendar";
 import StudentAttendanceGrid from "@/components/attendance/StudentAttendanceGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { getStudents, markAttendanceInDb, getAttendanceSummaryFromDb, getAttendanceRecords, supabase } from "@/lib/supabase";
 import { AttendanceSummary, Student, AttendanceRecord } from "@/types";
 import { toast } from "sonner";
+import { exportAttendanceToPDF, exportAttendanceToExcel } from "@/utils/exportUtils";
+import { FileDown, FileSpreadsheet } from "lucide-react";
+import { format } from "date-fns";
 
 const Attendance = () => {
   const [activeTab, setActiveTab] = useState<string>("mark");
@@ -110,6 +114,20 @@ const Attendance = () => {
     }
   };
 
+  const handleExportAttendancePDF = () => {
+    const currentMonth = format(new Date(), 'MMMM');
+    const currentYear = format(new Date(), 'yyyy');
+    exportAttendanceToPDF(attendanceRecords, studentList, currentMonth, currentYear);
+    toast.success("Attendance report exported as PDF");
+  };
+
+  const handleExportAttendanceExcel = () => {
+    const currentMonth = format(new Date(), 'MMMM');
+    const currentYear = format(new Date(), 'yyyy');
+    exportAttendanceToExcel(attendanceRecords, studentList, currentMonth, currentYear);
+    toast.success("Attendance report exported as Excel");
+  };
+
   const getAttendanceStats = () => {
     const today = new Date().toISOString().split('T')[0];
     const todayRecords = attendanceRecords.filter(record => record.date === today);
@@ -142,6 +160,16 @@ const Attendance = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Brainiacs HSC</h1>
+          <div className="flex gap-2">
+            <Button onClick={handleExportAttendancePDF} variant="outline" className="flex items-center gap-2">
+              <FileDown className="h-4 w-4" />
+              Export PDF
+            </Button>
+            <Button onClick={handleExportAttendanceExcel} variant="outline" className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Export Excel
+            </Button>
+          </div>
         </div>
 
         {/* Quick Stats */}
