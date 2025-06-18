@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Plus, BookOpen, BarChart3, FileDown, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { exportWeeklyMarksToPDF, exportWeeklyMarksToExcel } from "@/utils/exportUtils";
+import { exportWeeklyMarksToPDF, exportWeeklyMarksToExcel, exportIndividualStudentMarksToPDF, exportIndividualStudentMarksToExcel } from "@/utils/exportUtils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const WeeklyMarks = () => {
   const { toast } = useToast();
@@ -20,6 +22,7 @@ const WeeklyMarks = () => {
   const [activeTab, setActiveTab] = useState("view");
   const [editingMark, setEditingMark] = useState<WeeklyTestMark | null>(null);
   const [filters, setFilters] = useState<any>({});
+  const [selectedStudentForExport, setSelectedStudentForExport] = useState<string>("");
 
   useEffect(() => {
     loadData();
@@ -158,6 +161,44 @@ const WeeklyMarks = () => {
     });
   };
 
+  const handleExportIndividualStudentMarksPDF = () => {
+    if (!selectedStudentForExport) {
+      toast({
+        title: "Error",
+        description: "Please select a student first",
+        variant: "destructive",
+      });
+      return;
+    }
+    const student = students.find(s => s.id === selectedStudentForExport);
+    if (student) {
+      exportIndividualStudentMarksToPDF(marks, student, filters);
+      toast({
+        title: "Success",
+        description: `${student.name}'s marks analysis exported as PDF`,
+      });
+    }
+  };
+
+  const handleExportIndividualStudentMarksExcel = () => {
+    if (!selectedStudentForExport) {
+      toast({
+        title: "Error", 
+        description: "Please select a student first",
+        variant: "destructive",
+      });
+      return;
+    }
+    const student = students.find(s => s.id === selectedStudentForExport);
+    if (student) {
+      exportIndividualStudentMarksToExcel(marks, student, filters);
+      toast({
+        title: "Success",
+        description: `${student.name}'s marks analysis exported as Excel`,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -191,6 +232,49 @@ const WeeklyMarks = () => {
             </Button>
           </div>
         </div>
+
+        {/* Individual Student Export Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Individual Student Marks Analysis Export</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Select value={selectedStudentForExport} onValueChange={setSelectedStudentForExport}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a student to export individual marks analysis" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.name} - Class {student.class}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                onClick={handleExportIndividualStudentMarksPDF} 
+                variant="outline" 
+                disabled={!selectedStudentForExport}
+                className="flex items-center gap-2"
+              >
+                <FileDown className="h-4 w-4" />
+                Analysis PDF
+              </Button>
+              <Button 
+                onClick={handleExportIndividualStudentMarksExcel} 
+                variant="outline" 
+                disabled={!selectedStudentForExport}
+                className="flex items-center gap-2"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Analysis Excel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {students.length === 0 ? (
           <div className="text-center py-12">
