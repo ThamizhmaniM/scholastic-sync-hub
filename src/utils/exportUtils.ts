@@ -1,6 +1,6 @@
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { Student, AttendanceRecord } from '@/types';
@@ -41,8 +41,8 @@ export const exportAttendanceToPDF = (
     ];
   });
   
-  // Add table
-  doc.autoTable({
+  // Add table using autoTable
+  autoTable(doc, {
     head: [['Student Name', 'Class', 'Date', 'Status']],
     body: tableData,
     startY: month && year ? 40 : 30,
@@ -150,8 +150,8 @@ export const exportWeeklyMarksToPDF = (
     ];
   });
   
-  // Add table
-  doc.autoTable({
+  // Add table using autoTable
+  autoTable(doc, {
     head: [['Student', 'Subject', 'Week', 'Year', 'Marks', 'Percentage', 'Test Date']],
     body: tableData,
     startY: startY + 10,
