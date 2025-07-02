@@ -22,6 +22,8 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(
     student?.subjects || []
   );
+  const [parentPhone, setParentPhone] = useState(student?.parent_phone || "");
+  const [schoolName, setSchoolName] = useState(student?.school_name || "");
 
   const allowedSubjectsFor9And10 = [
     "Tamil",
@@ -65,6 +67,8 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
       gender,
       class: classValue,
       subjects: selectedSubjects,
+      parent_phone: parentPhone,
+      school_name: schoolName,
     });
   };
 
@@ -144,6 +148,27 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
             );
           })}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="parentPhone">Parent Phone Number</Label>
+        <Input
+          id="parentPhone"
+          value={parentPhone}
+          onChange={e => setParentPhone(e.target.value)}
+          placeholder="Enter parent's phone number"
+          type="tel"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="schoolName">School Name</Label>
+        <Input
+          id="schoolName"
+          value={schoolName}
+          onChange={e => setSchoolName(e.target.value)}
+          placeholder="Enter school name"
+        />
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

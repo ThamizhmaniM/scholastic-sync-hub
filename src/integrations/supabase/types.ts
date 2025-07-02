@@ -143,6 +143,8 @@ export type Database = {
           gender: string
           id: string
           name: string
+          parent_phone: string | null
+          school_name: string | null
           subjects: string[]
           updated_at: string | null
           user_id: string | null
@@ -153,6 +155,8 @@ export type Database = {
           gender: string
           id: string
           name: string
+          parent_phone?: string | null
+          school_name?: string | null
           subjects: string[]
           updated_at?: string | null
           user_id?: string | null
@@ -163,6 +167,8 @@ export type Database = {
           gender?: string
           id?: string
           name?: string
+          parent_phone?: string | null
+          school_name?: string | null
           subjects?: string[]
           updated_at?: string | null
           user_id?: string | null

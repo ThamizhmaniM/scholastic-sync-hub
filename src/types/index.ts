@@ -4,6 +4,8 @@ export interface Student {
   class: string;
   subjects: string[];
   gender: "male" | "female";
+  parent_phone?: string;
+  school_name?: string;
 }
 
 export interface Group {
