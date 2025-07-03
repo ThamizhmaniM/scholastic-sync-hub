@@ -55,6 +55,8 @@ export async function createStudent(student: Omit<Student, "id">) {
       class: student.class,
       subjects: student.subjects,
       gender: student.gender,
+      parent_phone: student.parent_phone,
+      school_name: student.school_name,
       user_id: user.id
     })
     .select()
@@ -76,6 +78,8 @@ export async function updateStudentInDb(student: Student) {
       class: student.class,
       subjects: student.subjects,
       gender: student.gender,
+      parent_phone: student.parent_phone,
+      school_name: student.school_name,
       updated_at: new Date().toISOString()
     })
     .eq('id', student.id)

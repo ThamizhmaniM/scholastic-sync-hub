@@ -13,6 +13,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Student } from "@/types";
+import { MessageCircle } from "lucide-react";
+import { generateWhatsAppMessage, openWhatsApp } from "@/utils/whatsappUtils";
+import { getAttendanceSummaryFromDb, getWeeklyTestMarks } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentListProps {
   students: Student[];
@@ -21,6 +25,7 @@ interface StudentListProps {
 }
 
 export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) => {
+  const { toast } = useToast();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; student: Student | null }>({
     open: false,
     student: null,
@@ -41,6 +46,49 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
     setDeleteDialog({ open: false, student: null });
   };
 
+  const handleSendWhatsApp = async (student: Student) => {
+    if (!student.parent_phone) {
+      toast({
+        title: "Error",
+        description: "Parent phone number not available for this student",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Get attendance summary
+      const attendanceSummary = await getAttendanceSummaryFromDb(student.id);
+      const studentAttendance = attendanceSummary.find(a => a.studentId === student.id);
+      
+      // Get recent test marks (last 5 marks)
+      const allMarks = await getWeeklyTestMarks(student.id);
+      const recentMarks = allMarks.slice(0, 5);
+      
+      // Generate WhatsApp message
+      const message = generateWhatsAppMessage(
+        student,
+        studentAttendance || { totalDays: 0, presentDays: 0, percentage: 0 },
+        recentMarks
+      );
+      
+      // Open WhatsApp
+      openWhatsApp(student.parent_phone, message);
+      
+      toast({
+        title: "Success",
+        description: `WhatsApp opened with ${student.name}'s progress report`,
+      });
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate progress report",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <div className="rounded-md border">
@@ -50,6 +98,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
               <TableHead>Name</TableHead>
               <TableHead>Class</TableHead>
               <TableHead>Gender</TableHead>
+              <TableHead>Parent Phone</TableHead>
               <TableHead>Subjects</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -57,7 +106,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
           <TableBody>
             {students.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No students found
                 </TableCell>
               </TableRow>
@@ -67,6 +116,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.class}</TableCell>
                   <TableCell className="capitalize">{student.gender}</TableCell>
+                  <TableCell>{student.parent_phone || "Not provided"}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {student.subjects.map((subject) => (
@@ -81,6 +131,15 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSendWhatsApp(student)}
+                        disabled={!student.parent_phone}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
