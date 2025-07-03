@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import StudentList from "@/components/students/StudentList";
 import StudentForm from "@/components/students/StudentForm";
+import BulkWhatsAppSender from "@/components/students/BulkWhatsAppSender";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Select,
   SelectContent,
@@ -133,41 +135,55 @@ const Students = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Students</h1>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search students..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-64"
-              />
-            </div>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classes</SelectItem>
-                {CLASSES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    Class {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAddClick}>
-              Add Student
-            </Button>
-          </div>
+          <Button onClick={handleAddClick}>
+            Add Student
+          </Button>
         </div>
 
-        <StudentList
-          students={filteredStudents}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-        />
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="list">Student List</TabsTrigger>
+            <TabsTrigger value="bulk-whatsapp">Bulk WhatsApp</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="list" className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {CLASSES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      Class {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <StudentList
+              students={filteredStudents}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+            />
+          </TabsContent>
+
+          <TabsContent value="bulk-whatsapp">
+            <BulkWhatsAppSender students={studentList} />
+          </TabsContent>
+        </Tabs>
 
         {/* Student Form Dialog */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
