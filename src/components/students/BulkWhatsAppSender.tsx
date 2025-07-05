@@ -5,10 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MessageCircle, Send, Filter } from "lucide-react";
+import { MessageCircle, Send, Filter, FileText, Download } from "lucide-react";
 import { Student } from "@/types";
-import { getAttendanceSummaryFromDb, getWeeklyTestMarks } from "@/lib/supabase";
+import { getAttendanceSummaryFromDb, getWeeklyTestMarks, getAttendanceRecords } from "@/lib/supabase";
 import { generateWhatsAppMessage, openWhatsApp } from "@/utils/whatsappUtils";
+import { exportStudentSummaryToPDF } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -164,6 +165,74 @@ export const BulkWhatsAppSender = ({ students }: BulkWhatsAppSenderProps) => {
     });
   };
 
+  const generateBulkPDFs = async () => {
+    if (selectedStudents.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one student",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      toast({
+        title: "Generating PDFs",
+        description: `Preparing ${selectedStudents.length} student reports...`,
+      });
+
+      // Get attendance records once for all students
+      const attendanceRecords = await getAttendanceRecords();
+
+      for (const studentId of selectedStudents) {
+        const student = filteredStudents.find(s => s.id === studentId);
+        if (!student) continue;
+
+        try {
+          // Get all test marks for the student
+          const allMarks = await getWeeklyTestMarks(student.id);
+          
+          // Generate PDF with a small delay to prevent browser hanging
+          setTimeout(() => {
+            exportStudentSummaryToPDF(
+              student,
+              attendanceRecords,
+              allMarks,
+              `Academic Year ${new Date().getFullYear()}`
+            );
+          }, successCount * 500); // 500ms delay between each PDF generation
+          
+          successCount++;
+        } catch (error) {
+          console.error(`Error generating PDF for ${student.name}:`, error);
+          errorCount++;
+        }
+      }
+
+      // Show completion message after a delay
+      setTimeout(() => {
+        toast({
+          title: "PDFs Generated",
+          description: `Successfully generated ${successCount} PDF reports${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+        });
+      }, selectedStudents.length * 500 + 1000);
+
+    } catch (error) {
+      console.error('Error in bulk PDF generation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF reports",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const uniqueClasses = Array.from(new Set(students.map(s => s.class))).sort();
 
   return (
@@ -286,8 +355,17 @@ export const BulkWhatsAppSender = ({ students }: BulkWhatsAppSenderProps) => {
           </div>
         </div>
 
-        {/* Send Button */}
-        <div className="flex justify-end">
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={generateBulkPDFs}
+            disabled={selectedStudents.length === 0 || loading}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            {loading ? 'Generating...' : `Generate ${selectedStudents.length} PDFs`}
+          </Button>
           <Button
             onClick={sendBulkMessages}
             disabled={selectedStudents.length === 0 || loading}

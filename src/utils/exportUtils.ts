@@ -608,3 +608,266 @@ export const exportIndividualStudentMarksToExcel = (
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Student Marks');
   XLSX.writeFile(workbook, `${student.name}_marks_analysis_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
+
+// New function: Export comprehensive student summary PDF
+export const exportStudentSummaryToPDF = (
+  student: Student,
+  attendanceRecords: AttendanceRecord[],
+  marks: any[],
+  period?: string
+) => {
+  const doc = new jsPDF();
+  
+  // Header with school branding
+  doc.setFillColor(59, 130, 246);
+  doc.rect(0, 0, 210, 40, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.text('Student Progress Report', 105, 20, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text('Academic Performance Summary', 105, 30, { align: 'center' });
+  
+  // Student Information Section
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(18);
+  doc.text('Student Information', 14, 55);
+  
+  doc.setFontSize(12);
+  doc.text(`Name: ${student.name}`, 14, 70);
+  doc.text(`Class: ${student.class}`, 14, 80);
+  doc.text(`Gender: ${student.gender}`, 14, 90);
+  if (student.school_name) {
+    doc.text(`School: ${student.school_name}`, 14, 100);
+  }
+  
+  doc.setFontSize(10);
+  doc.text(`Report Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 110);
+  if (period) {
+    doc.text(`Period: ${period}`, 14, 120);
+  }
+  
+  // Attendance Summary Section
+  const studentAttendance = attendanceRecords.filter(r => r.studentId === student.id);
+  const presentCount = studentAttendance.filter(r => r.status === 'present').length;
+  const totalDays = studentAttendance.length;
+  const attendancePercentage = totalDays > 0 ? ((presentCount / totalDays) * 100) : 0;
+  
+  let currentY = period ? 135 : 125;
+  
+  doc.setFontSize(16);
+  doc.text('📊 Attendance Summary', 14, currentY);
+  
+  // Attendance visual indicator
+  const attendanceColor = attendancePercentage >= 85 ? [34, 197, 94] : 
+                         attendancePercentage >= 70 ? [234, 179, 8] : [239, 68, 68];
+  doc.setFillColor(attendanceColor[0], attendanceColor[1], attendanceColor[2]);
+  doc.rect(14, currentY + 5, (attendancePercentage * 1.8), 8, 'F');
+  
+  doc.setFontSize(12);
+  doc.text(`Attendance Rate: ${attendancePercentage.toFixed(1)}%`, 14, currentY + 20);
+  doc.text(`Total School Days: ${totalDays}`, 14, currentY + 30);
+  doc.text(`Days Present: ${presentCount}`, 14, currentY + 40);
+  doc.text(`Days Absent: ${totalDays - presentCount}`, 14, currentY + 50);
+  
+  // Attendance status
+  let statusText = '';
+  let statusColor = [0, 0, 0];
+  if (attendancePercentage >= 85) {
+    statusText = '✅ Excellent Attendance';
+    statusColor = [34, 197, 94];
+  } else if (attendancePercentage >= 70) {
+    statusText = '⚠️ Good Attendance - Room for Improvement';
+    statusColor = [234, 179, 8];
+  } else {
+    statusText = '❌ Poor Attendance - Needs Attention';
+    statusColor = [239, 68, 68];
+  }
+  
+  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.setFontSize(10);
+  doc.text(statusText, 14, currentY + 65);
+  doc.setTextColor(0, 0, 0);
+  
+  // Test Marks Summary Section
+  const studentMarks = marks.filter(mark => mark.student_id === student.id);
+  currentY += 85;
+  
+  // Variables for later use in recommendations
+  let subjectGroups: any = {};
+  let overallAvg = 0;
+  
+  doc.setFontSize(16);
+  doc.text('📝 Academic Performance', 14, currentY);
+  
+  if (studentMarks.length === 0) {
+    doc.setFontSize(12);
+    doc.text('No test marks available for this period.', 14, currentY + 15);
+  } else {
+    // Overall performance summary
+    overallAvg = studentMarks.reduce((sum, mark) => 
+      sum + (mark.marks_obtained / mark.total_marks * 100), 0) / studentMarks.length;
+    
+    let grade = 'F';
+    let gradeColor = [239, 68, 68];
+    if (overallAvg >= 90) { grade = 'A+'; gradeColor = [34, 197, 94]; }
+    else if (overallAvg >= 80) { grade = 'A'; gradeColor = [59, 130, 246]; }
+    else if (overallAvg >= 70) { grade = 'B+'; gradeColor = [16, 185, 129]; }
+    else if (overallAvg >= 60) { grade = 'B'; gradeColor = [234, 179, 8]; }
+    else if (overallAvg >= 50) { grade = 'C'; gradeColor = [249, 115, 22]; }
+    else if (overallAvg >= 40) { grade = 'D'; gradeColor = [239, 68, 68]; }
+    
+    // Performance indicator
+    doc.setFillColor(gradeColor[0], gradeColor[1], gradeColor[2]);
+    doc.rect(14, currentY + 5, (overallAvg * 1.8), 8, 'F');
+    
+    doc.setFontSize(12);
+    doc.text(`Overall Average: ${overallAvg.toFixed(1)}% (Grade: ${grade})`, 14, currentY + 20);
+    doc.text(`Total Tests Taken: ${studentMarks.length}`, 14, currentY + 30);
+    
+    // Subject-wise performance table
+    currentY += 45;
+    
+    // Group marks by subject for summary
+    subjectGroups = studentMarks.reduce((acc: any, mark) => {
+      if (!acc[mark.subject]) {
+        acc[mark.subject] = [];
+      }
+      acc[mark.subject].push(mark);
+      return acc;
+    }, {});
+    
+    const subjectSummary = Object.entries(subjectGroups).map(([subject, subjectMarks]: [string, any]) => {
+      const avgPercentage = subjectMarks.reduce((sum: number, mark: any) => 
+        sum + (mark.marks_obtained / mark.total_marks * 100), 0) / subjectMarks.length;
+      const testsCount = subjectMarks.length;
+      const bestMark = Math.max(...subjectMarks.map((m: any) => (m.marks_obtained / m.total_marks * 100)));
+      
+      return [
+        subject,
+        testsCount.toString(),
+        `${avgPercentage.toFixed(1)}%`,
+        `${bestMark.toFixed(1)}%`
+      ];
+    });
+    
+    // Add subject performance table
+    autoTable(doc, {
+      head: [['Subject', 'Tests', 'Average', 'Best Score']],
+      body: subjectSummary,
+      startY: currentY,
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+      },
+      headStyles: {
+        fillColor: [59, 130, 246],
+        textColor: 255,
+        fontSize: 11,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+    });
+    
+    currentY = (doc as any).lastAutoTable.finalY + 20;
+    
+    // Recent test details
+    const recentMarks = studentMarks
+      .sort((a, b) => new Date(b.test_date).getTime() - new Date(a.test_date).getTime())
+      .slice(0, 5);
+    
+    if (recentMarks.length > 0) {
+      doc.setFontSize(14);
+      doc.text('Recent Test Performance', 14, currentY);
+      
+      const recentMarksData = recentMarks.map(mark => {
+        const percentage = ((mark.marks_obtained / mark.total_marks) * 100).toFixed(1);
+        return [
+          mark.subject,
+          `Week ${mark.week_number}`,
+          `${mark.marks_obtained}/${mark.total_marks}`,
+          `${percentage}%`,
+          format(new Date(mark.test_date), 'dd/MM/yyyy'),
+          mark.remarks || '-'
+        ];
+      });
+      
+      autoTable(doc, {
+        head: [['Subject', 'Week', 'Marks', 'Percentage', 'Date', 'Remarks']],
+        body: recentMarksData,
+        startY: currentY + 10,
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [59, 130, 246],
+          textColor: 255,
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+      });
+      
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+    }
+  }
+  
+  // Footer with recommendations
+  if (currentY > 250) {
+    doc.addPage();
+    currentY = 20;
+  }
+  
+  doc.setFontSize(14);
+  doc.text('📋 Recommendations', 14, currentY);
+  
+  doc.setFontSize(10);
+  const recommendations = [];
+  
+  if (attendancePercentage < 85) {
+    recommendations.push('• Focus on improving attendance for better academic performance');
+  }
+  
+  if (studentMarks.length > 0) {
+    const weakSubjects = Object.entries(subjectGroups)
+      .filter(([_, marks]: [string, any]) => {
+        const avg = marks.reduce((sum: number, mark: any) => 
+          sum + (mark.marks_obtained / mark.total_marks * 100), 0) / marks.length;
+        return avg < 60;
+      })
+      .map(([subject]) => subject);
+    
+    if (weakSubjects.length > 0) {
+      recommendations.push(`• Extra attention needed in: ${weakSubjects.join(', ')}`);
+    }
+    
+    if (overallAvg >= 80) {
+      recommendations.push('• Excellent academic performance! Keep up the great work');
+    } else if (overallAvg >= 60) {
+      recommendations.push('• Good performance with room for improvement');
+    } else {
+      recommendations.push('• Academic support recommended for better performance');
+    }
+  }
+  
+  if (recommendations.length === 0) {
+    recommendations.push('• Continue maintaining good academic habits');
+  }
+  
+  recommendations.forEach((rec, index) => {
+    doc.text(rec, 14, currentY + 15 + (index * 10));
+  });
+  
+  // Footer
+  const pageHeight = doc.internal.pageSize.height;
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.text('Generated by School Management System', 14, pageHeight - 10);
+  doc.text(`Page 1 of 1`, 180, pageHeight - 10);
+  
+  // Save the PDF
+  const fileName = `${student.name.replace(/\s+/g, '_')}_Summary_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  doc.save(fileName);
+};

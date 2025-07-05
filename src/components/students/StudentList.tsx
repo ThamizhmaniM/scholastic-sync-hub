@@ -13,9 +13,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Student } from "@/types";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, FileText } from "lucide-react";
 import { generateWhatsAppMessage, openWhatsApp } from "@/utils/whatsappUtils";
-import { getAttendanceSummaryFromDb, getWeeklyTestMarks } from "@/lib/supabase";
+import { exportStudentSummaryToPDF } from "@/utils/exportUtils";
+import { getAttendanceSummaryFromDb, getWeeklyTestMarks, getAttendanceRecords } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentListProps {
@@ -89,6 +90,41 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
     }
   };
 
+  const handleGeneratePDF = async (student: Student) => {
+    try {
+      toast({
+        title: "Generating PDF",
+        description: "Please wait while we generate the student summary...",
+      });
+
+      // Get attendance records
+      const attendanceRecords = await getAttendanceRecords();
+      
+      // Get all test marks for the student
+      const allMarks = await getWeeklyTestMarks(student.id);
+      
+      // Generate and download PDF
+      exportStudentSummaryToPDF(
+        student,
+        attendanceRecords,
+        allMarks,
+        `Academic Year ${new Date().getFullYear()}`
+      );
+      
+      toast({
+        title: "Success",
+        description: `PDF report generated for ${student.name}`,
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF report",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <div className="rounded-md border">
@@ -137,8 +173,18 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
                         onClick={() => handleSendWhatsApp(student)}
                         disabled={!student.parent_phone}
                         className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Send WhatsApp Summary"
                       >
                         <MessageCircle className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleGeneratePDF(student)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Generate PDF Summary"
+                      >
+                        <FileText className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
