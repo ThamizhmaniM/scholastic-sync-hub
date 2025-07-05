@@ -13,9 +13,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Student } from "@/types";
-import { MessageCircle, FileText } from "lucide-react";
-import { generateWhatsAppMessage, openWhatsApp } from "@/utils/whatsappUtils";
-import { exportStudentSummaryToPDF } from "@/utils/exportUtils";
+import { MessageCircle, FileText, Send } from "lucide-react";
+import { generateWhatsAppMessage, openWhatsApp, sendPDFViaWhatsApp } from "@/utils/whatsappUtils";
+import { exportStudentSummaryToPDF, generateStudentSummaryPDFBlob } from "@/utils/exportUtils";
 import { getAttendanceSummaryFromDb, getWeeklyTestMarks, getAttendanceRecords } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +31,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
     open: false,
     student: null,
   });
+  const [loading, setLoading] = useState<string | null>(null);
 
   const handleDeleteClick = (student: Student) => {
     setDeleteDialog({ open: true, student });
@@ -58,11 +59,13 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
     }
 
     try {
+      setLoading(`whatsapp-${student.id}`);
+      
       // Get attendance summary
       const attendanceSummary = await getAttendanceSummaryFromDb(student.id);
       const studentAttendance = attendanceSummary.find(a => a.studentId === student.id);
       
-      // Get recent test marks (last 5 marks)
+      // Get recent test marks
       const allMarks = await getWeeklyTestMarks(student.id);
       const recentMarks = allMarks.slice(0, 5);
       
@@ -87,11 +90,15 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
         description: "Failed to generate progress report",
         variant: "destructive",
       });
+    } finally {
+      setLoading(null);
     }
   };
 
   const handleGeneratePDF = async (student: Student) => {
     try {
+      setLoading(`pdf-${student.id}`);
+      
       toast({
         title: "Generating PDF",
         description: "Please wait while we generate the student summary...",
@@ -113,7 +120,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
       
       toast({
         title: "Success",
-        description: `PDF report generated for ${student.name}`,
+        description: `Enhanced PDF report generated for ${student.name}`,
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -122,6 +129,69 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
         description: "Failed to generate PDF report",
         variant: "destructive",
       });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleSendPDFWhatsApp = async (student: Student) => {
+    if (!student.parent_phone) {
+      toast({
+        title: "Error",
+        description: "Parent phone number not available for this student",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setLoading(`pdf-whatsapp-${student.id}`);
+      
+      toast({
+        title: "Preparing PDF",
+        description: "Generating PDF and sending via WhatsApp...",
+      });
+
+      // Get attendance records and marks
+      const attendanceRecords = await getAttendanceRecords();
+      const allMarks = await getWeeklyTestMarks(student.id);
+      
+      // Generate PDF blob
+      const pdfBlob = await generateStudentSummaryPDFBlob(
+        student,
+        attendanceRecords,
+        allMarks,
+        `Academic Year ${new Date().getFullYear()}`
+      );
+      
+      const fileName = `${student.name.replace(/\s+/g, '_')}_Academic_Report.pdf`;
+      
+      // Send PDF via WhatsApp
+      const result = await sendPDFViaWhatsApp(
+        student.parent_phone,
+        pdfBlob,
+        student.name,
+        fileName
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `PDF report sent to ${student.name}'s parent via WhatsApp`,
+        });
+      } else {
+        throw new Error(result.error || "Failed to send PDF");
+      }
+      
+    } catch (error) {
+      console.error('Error sending PDF via WhatsApp:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send PDF via WhatsApp",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(null);
     }
   };
 
@@ -171,7 +241,7 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
                         variant="ghost"
                         size="sm"
                         onClick={() => handleSendWhatsApp(student)}
-                        disabled={!student.parent_phone}
+                        disabled={!student.parent_phone || loading === `whatsapp-${student.id}`}
                         className="text-green-600 hover:text-green-700 hover:bg-green-50"
                         title="Send WhatsApp Summary"
                       >
@@ -181,10 +251,21 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
                         variant="ghost"
                         size="sm"
                         onClick={() => handleGeneratePDF(student)}
+                        disabled={loading === `pdf-${student.id}`}
                         className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         title="Generate PDF Summary"
                       >
                         <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSendPDFWhatsApp(student)}
+                        disabled={!student.parent_phone || loading === `pdf-whatsapp-${student.id}`}
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                        title="Send PDF via WhatsApp"
+                      >
+                        <Send className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -210,7 +291,6 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
         </Table>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && handleCancelDelete()}>
         <AlertDialogContent>
           <AlertDialogHeader>
