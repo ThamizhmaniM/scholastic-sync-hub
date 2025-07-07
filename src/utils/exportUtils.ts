@@ -519,7 +519,21 @@ export const exportAttendanceGridToExcel = (
   const monthEnd = endOfMonth(monthStart);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   
-  const data = students.map(student => {
+  // Create data with proper structure
+  const data: any[] = [];
+  
+  // Add header row
+  const headerRow: any = {
+    'Student Name': 'Student Name',
+    'Class': 'Class'
+  };
+  monthDays.forEach(day => {
+    headerRow[`Day_${format(day, 'd')}`] = format(day, 'd');
+  });
+  data.push(headerRow);
+  
+  // Add student data
+  students.forEach(student => {
     const row: any = {
       'Student Name': student.name,
       'Class': student.class,
@@ -528,31 +542,27 @@ export const exportAttendanceGridToExcel = (
     monthDays.forEach(day => {
       const dateStr = format(day, 'yyyy-MM-dd');
       const record = attendanceRecords.find(r => r.studentId === student.id && r.date === dateStr);
-      row[format(day, 'd')] = record ? (record.status === 'present' ? 'P' : 'A') : '-';
+      const status = record ? (record.status === 'present' ? 'P' : 'A') : '-';
+      
+      // Use a descriptive key and mark absent entries
+      const dayKey = `Day_${format(day, 'd')}`;
+      row[dayKey] = status === 'A' ? `🔴 A` : status; // Add red circle emoji for absent
     });
     
-    return row;
+    data.push(row);
   });
   
+  // Create workbook and worksheet
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet(data);
+  const worksheet = XLSX.utils.json_to_sheet(data, { skipHeader: true });
   
-  // Apply red background to absent cells
-  const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-  for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Skip header row
-    for (let C = range.s.c + 2; C <= range.e.c; ++C) { // Skip name and class columns
-      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-      const cell = worksheet[cellAddress];
-      
-      if (cell && cell.v === 'A') {
-        cell.s = {
-          fill: {
-            fgColor: { rgb: "FFCCCB" } // Light red background for absent
-          }
-        };
-      }
-    }
-  }
+  // Set column widths
+  const cols = [
+    { wch: 25 }, // Student Name
+    { wch: 10 }, // Class
+    ...monthDays.map(() => ({ wch: 5 })) // Day columns
+  ];
+  worksheet['!cols'] = cols;
   
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Grid');
   XLSX.writeFile(workbook, `attendance_grid_${month}_${year}.xlsx`);
