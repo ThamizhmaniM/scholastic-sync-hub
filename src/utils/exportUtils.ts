@@ -241,7 +241,7 @@ export const exportAttendanceGridToPDF = (
   // Prepare headers
   const headers = ['Student', 'Class', ...monthDays.map(day => format(day, 'd'))];
   
-  // Prepare data
+  // Prepare data with attendance status tracking
   const tableData = students.map(student => {
     const row = [student.name, student.class];
     
@@ -270,6 +270,13 @@ export const exportAttendanceGridToPDF = (
       0: { cellWidth: 40 }, // Student name
       1: { cellWidth: 20 }, // Class
     },
+    didParseCell: function(data) {
+      // Highlight absent dates in red
+      if (data.section === 'body' && data.column.index >= 2 && data.cell.text[0] === 'A') {
+        data.cell.styles.fillColor = [255, 204, 203]; // Light red background
+        data.cell.styles.textColor = [139, 0, 0]; // Dark red text
+      }
+    }
   });
   
   doc.save(`attendance_grid_${month}_${year}.pdf`);
@@ -529,6 +536,24 @@ export const exportAttendanceGridToExcel = (
   
   const workbook = XLSX.utils.book_new();
   const worksheet = XLSX.utils.json_to_sheet(data);
+  
+  // Apply red background to absent cells
+  const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+  for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Skip header row
+    for (let C = range.s.c + 2; C <= range.e.c; ++C) { // Skip name and class columns
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = worksheet[cellAddress];
+      
+      if (cell && cell.v === 'A') {
+        cell.s = {
+          fill: {
+            fgColor: { rgb: "FFCCCB" } // Light red background for absent
+          }
+        };
+      }
+    }
+  }
+  
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Grid');
   XLSX.writeFile(workbook, `attendance_grid_${month}_${year}.xlsx`);
 };
