@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Student, AttendanceRecord, WeeklyTestMark } from '@/types';
+import { Student, AttendanceRecord, WeeklyTestMark, Profile } from '@/types';
 
 // Create a single supabase client for interacting with the database
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ayjhqayszahqerzmtyni.supabase.co';
@@ -57,7 +57,7 @@ export async function createStudent(student: Omit<Student, "id">) {
       gender: student.gender,
       parent_phone: student.parent_phone,
       school_name: student.school_name,
-      user_id: user.id
+      user_id: student.user_id || user.id // Use assigned staff or current user
     })
     .select()
     .single();
@@ -80,6 +80,7 @@ export async function updateStudentInDb(student: Student) {
       gender: student.gender,
       parent_phone: student.parent_phone,
       school_name: student.school_name,
+      user_id: student.user_id,
       updated_at: new Date().toISOString()
     })
     .eq('id', student.id)
@@ -356,4 +357,19 @@ export async function getDashboardStats() {
       attendanceRate: 0,
     };
   }
+}
+
+// Profiles Functions
+export async function getProfiles(): Promise<Profile[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .order('full_name');
+  
+  if (error) {
+    console.error('Error fetching profiles:', error);
+    return [];
+  }
+  
+  return data || [];
 }

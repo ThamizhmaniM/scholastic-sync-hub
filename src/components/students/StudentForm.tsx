@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Student } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Student, Profile } from "@/types";
 import { SUBJECTS, CLASSES } from "@/lib/mock-data";
+import { getProfiles } from "@/lib/supabase";
 import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -24,6 +26,8 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
   );
   const [parentPhone, setParentPhone] = useState(student?.parent_phone || "");
   const [schoolName, setSchoolName] = useState(student?.school_name || "");
+  const [assignedStaff, setAssignedStaff] = useState(student?.user_id || "");
+  const [staffList, setStaffList] = useState<Profile[]>([]);
 
   const allowedSubjectsFor9And10 = [
     "Tamil",
@@ -32,6 +36,15 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
     "Science",
     "Social Science",
   ];
+
+  // Load staff list
+  useEffect(() => {
+    const loadStaff = async () => {
+      const profiles = await getProfiles();
+      setStaffList(profiles);
+    };
+    loadStaff();
+  }, []);
 
   useEffect(() => {
     if (classValue === "9" || classValue === "10") {
@@ -69,6 +82,7 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
       subjects: selectedSubjects,
       parent_phone: parentPhone,
       school_name: schoolName,
+      user_id: assignedStaff,
     });
   };
 
@@ -169,6 +183,23 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
           onChange={e => setSchoolName(e.target.value)}
           placeholder="Enter school name"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="assignedStaff">Assign Staff/Teacher</Label>
+        <Select value={assignedStaff} onValueChange={setAssignedStaff}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a staff member" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No staff assigned</SelectItem>
+            {staffList.map(staff => (
+              <SelectItem key={staff.id} value={staff.id}>
+                {staff.full_name || staff.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

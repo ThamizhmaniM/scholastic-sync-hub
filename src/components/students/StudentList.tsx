@@ -1,7 +1,7 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,11 +12,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Student } from "@/types";
-import { MessageCircle, FileText, Send } from "lucide-react";
+import { Student, Profile } from "@/types";
+import { MessageCircle, FileText, Send, ArrowUpDown } from "lucide-react";
 import { generateWhatsAppMessage, openWhatsApp, sendPDFViaWhatsApp } from "@/utils/whatsappUtils";
 import { exportStudentSummaryToPDF, generateStudentSummaryPDFBlob } from "@/utils/exportUtils";
-import { getAttendanceSummaryFromDb, getWeeklyTestMarks, getAttendanceRecords } from "@/lib/supabase";
+import { getAttendanceSummaryFromDb, getWeeklyTestMarks, getAttendanceRecords, getProfiles } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 interface StudentListProps {
@@ -32,6 +32,18 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
     student: null,
   });
   const [loading, setLoading] = useState<string | null>(null);
+  const [staffList, setStaffList] = useState<Profile[]>([]);
+  const [sortBy, setSortBy] = useState<'name' | 'class' | 'staff'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Load staff profiles
+  useEffect(() => {
+    const loadStaff = async () => {
+      const profiles = await getProfiles();
+      setStaffList(profiles);
+    };
+    loadStaff();
+  }, []);
 
   const handleDeleteClick = (student: Student) => {
     setDeleteDialog({ open: true, student });
@@ -195,100 +207,190 @@ export const StudentList = ({ students, onEdit, onDelete }: StudentListProps) =>
     }
   };
 
+  // Get staff name by ID
+  const getStaffName = (staffId?: string) => {
+    if (!staffId) return 'Not assigned';
+    const staff = staffList.find(s => s.id === staffId);
+    return staff?.full_name || staff?.email || 'Unknown';
+  };
+
+  // Sort students
+  const sortedStudents = [...students].sort((a, b) => {
+    let aValue: string;
+    let bValue: string;
+
+    switch (sortBy) {
+      case 'name':
+        aValue = a.name;
+        bValue = b.name;
+        break;
+      case 'class':
+        aValue = a.class;
+        bValue = b.class;
+        break;
+      case 'staff':
+        aValue = getStaffName(a.user_id);
+        bValue = getStaffName(b.user_id);
+        break;
+      default:
+        return 0;
+    }
+
+    const comparison = aValue.localeCompare(bValue);
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  const handleSort = (newSortBy: 'name' | 'class' | 'staff') => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('asc');
+    }
+  };
+
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Class</TableHead>
-              <TableHead>Gender</TableHead>
-              <TableHead>Parent Phone</TableHead>
-              <TableHead>Subjects</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {students.length === 0 ? (
+      <div className="space-y-4">
+        {/* Sort Controls */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Sort by:</span>
+            <Select value={sortBy} onValueChange={(value: 'name' | 'class' | 'staff') => setSortBy(value)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="class">Class</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              {sortOrder === 'asc' ? 'Asc' : 'Desc'}
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  No students found
-                </TableCell>
+                <TableHead 
+                  className="cursor-pointer hover:bg-gray-50" 
+                  onClick={() => handleSort('name')}
+                >
+                  Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-gray-50" 
+                  onClick={() => handleSort('class')}
+                >
+                  Class {sortBy === 'class' && (sortOrder === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead>Gender</TableHead>
+                <TableHead>Parent Phone</TableHead>
+                <TableHead>Subjects</TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-gray-50" 
+                  onClick={() => handleSort('staff')}
+                >
+                  Assigned Staff {sortBy === 'staff' && (sortOrder === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              students.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell>{student.class}</TableCell>
-                  <TableCell className="capitalize">{student.gender}</TableCell>
-                  <TableCell>{student.parent_phone || "Not provided"}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {student.subjects.map((subject) => (
-                        <span
-                          key={subject}
-                          className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
-                        >
-                          {subject}
-                        </span>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSendWhatsApp(student)}
-                        disabled={!student.parent_phone || loading === `whatsapp-${student.id}`}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                        title="Send WhatsApp Summary"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleGeneratePDF(student)}
-                        disabled={loading === `pdf-${student.id}`}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        title="Generate PDF Summary"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSendPDFWhatsApp(student)}
-                        disabled={!student.parent_phone || loading === `pdf-whatsapp-${student.id}`}
-                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                        title="Send PDF via WhatsApp"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(student)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteClick(student)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {sortedStudents.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    No students found
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                sortedStudents.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell className="font-medium">{student.name}</TableCell>
+                    <TableCell>Class {student.class}</TableCell>
+                    <TableCell className="capitalize">{student.gender}</TableCell>
+                    <TableCell>{student.parent_phone || "Not provided"}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {student.subjects.map((subject) => (
+                          <span
+                            key={subject}
+                            className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10"
+                          >
+                            {subject}
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-gray-600">
+                        {getStaffName(student.user_id)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSendWhatsApp(student)}
+                          disabled={!student.parent_phone || loading === `whatsapp-${student.id}`}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title="Send WhatsApp Summary"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleGeneratePDF(student)}
+                          disabled={loading === `pdf-${student.id}`}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          title="Generate PDF Summary"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSendPDFWhatsApp(student)}
+                          disabled={!student.parent_phone || loading === `pdf-whatsapp-${student.id}`}
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                          title="Send PDF via WhatsApp"
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEdit(student)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteClick(student)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && handleCancelDelete()}>

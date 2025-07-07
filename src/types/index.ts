@@ -6,6 +6,13 @@ export interface Student {
   gender: "male" | "female";
   parent_phone?: string;
   school_name?: string;
+  user_id?: string; // Staff/Teacher assigned to the student
+}
+
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  email: string;
 }
 
 export interface Group {
