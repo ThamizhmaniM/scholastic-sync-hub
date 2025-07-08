@@ -82,7 +82,7 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
       subjects: selectedSubjects,
       parent_phone: parentPhone,
       school_name: schoolName,
-      user_id: assignedStaff,
+      user_id: assignedStaff === "none" ? undefined : assignedStaff,
     });
   };
 
@@ -192,7 +192,7 @@ export const StudentForm = ({ student, onSubmit, onCancel }: StudentFormProps) =
             <SelectValue placeholder="Select a staff member" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No staff assigned</SelectItem>
+            <SelectItem value="none">No staff assigned</SelectItem>
             {staffList.map(staff => (
               <SelectItem key={staff.id} value={staff.id}>
                 {staff.full_name || staff.email}
