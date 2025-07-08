@@ -7,8 +7,8 @@ import StudentAttendanceGrid from "@/components/attendance/StudentAttendanceGrid
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { getStudents, markAttendanceInDb, getAttendanceSummaryFromDb, getAttendanceRecords, supabase } from "@/lib/supabase";
-import { AttendanceSummary, Student, AttendanceRecord } from "@/types";
+import { getStudents, markAttendanceInDb, getAttendanceSummaryFromDb, getAttendanceRecords, supabase, getProfiles } from "@/lib/supabase";
+import { AttendanceSummary, Student, AttendanceRecord, Profile } from "@/types";
 import { toast } from "sonner";
 import { exportAttendanceToPDF, exportAttendanceToExcel, exportAttendanceGridToPDF, exportAttendanceGridToExcel, exportIndividualStudentAttendanceToPDF, exportIndividualStudentAttendanceToExcel, exportAttendanceSummaryToPDF, exportAttendanceSummaryToExcel } from "@/utils/exportUtils";
 import { FileDown, FileSpreadsheet, Download } from "lucide-react";
@@ -18,14 +18,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const Attendance = () => {
   const [activeTab, setActiveTab] = useState<string>("mark");
   const [studentList, setStudentList] = useState<Student[]>([]);
+  const [filteredStudentList, setFilteredStudentList] = useState<Student[]>([]);
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudentForExport, setSelectedStudentForExport] = useState<string>("");
+  const [staffList, setStaffList] = useState<Profile[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string>("all");
 
   useEffect(() => {
     loadDataFromDatabase();
+    loadStaffData();
   }, []);
+
+  useEffect(() => {
+    filterStudentsByStaff();
+  }, [studentList, selectedStaff]);
 
   const loadDataFromDatabase = async () => {
     try {
@@ -45,6 +53,26 @@ const Attendance = () => {
       toast.error("Failed to load attendance data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStaffData = async () => {
+    try {
+      const profiles = await getProfiles();
+      setStaffList(profiles);
+    } catch (error) {
+      console.error('Error loading staff data:', error);
+      toast.error("Failed to load staff data");
+    }
+  };
+
+  const filterStudentsByStaff = () => {
+    if (selectedStaff === "all") {
+      setFilteredStudentList(studentList);
+    } else if (selectedStaff === "unassigned") {
+      setFilteredStudentList(studentList.filter(student => !student.user_id));
+    } else {
+      setFilteredStudentList(studentList.filter(student => student.user_id === selectedStaff));
     }
   };
 
@@ -294,6 +322,36 @@ const Attendance = () => {
           </CardContent>
         </Card>
 
+        {/* Staff Filter Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filter Students by Staff</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by assigned staff" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Students</SelectItem>
+                    <SelectItem value="unassigned">Unassigned Students</SelectItem>
+                    {staffList.map((staff) => (
+                      <SelectItem key={staff.id} value={staff.id}>
+                        {staff.full_name || staff.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {filteredStudentList.length} of {studentList.length} students
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -332,7 +390,7 @@ const Attendance = () => {
           
           <TabsContent value="mark" className="mt-6">
             <AttendanceForm
-              students={studentList}
+              students={filteredStudentList}
               onMarkAttendance={handleMarkAttendance}
             />
           </TabsContent>
@@ -340,7 +398,7 @@ const Attendance = () => {
           <TabsContent value="grid" className="mt-6">
             <StudentAttendanceGrid 
               attendanceRecords={attendanceRecords}
-              students={studentList}
+              students={filteredStudentList}
               onMarkAttendance={handleMarkAttendance}
               onRemoveAttendance={handleRemoveAttendance}
             />
@@ -349,7 +407,7 @@ const Attendance = () => {
           <TabsContent value="calendar" className="mt-6">
             <AttendanceCalendar 
               attendanceRecords={attendanceRecords}
-              students={studentList}
+              students={filteredStudentList}
             />
           </TabsContent>
           
