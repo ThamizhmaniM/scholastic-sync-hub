@@ -1,14 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
 import { Student, AttendanceRecord, WeeklyTestMark, Profile } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
-// Create a single supabase client for interacting with the database
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ayjhqayszahqerzmtyni.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5amhxYXlzemFocWVyem10eW5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4OTU4NTcsImV4cCI6MjA2NTQ3MTg1N30.xBs9Wtj4ObZNTem0k9b4f9eXU8kg-bmUG5ySVxZdoo8';
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Re-export supabase for compatibility
+export { supabase };
 
 // Students Table Functions
-export async function getStudents() {
+export async function getStudents(): Promise<Student[]> {
   const { data, error } = await supabase
     .from('students')
     .select('*')
@@ -19,10 +16,10 @@ export async function getStudents() {
     return [];
   }
   
-  return data || [];
+  return (data || []) as Student[];
 }
 
-export async function getStudentById(id: string) {
+export async function getStudentById(id: string): Promise<Student | null> {
   const { data, error } = await supabase
     .from('students')
     .select('*')
@@ -34,10 +31,10 @@ export async function getStudentById(id: string) {
     return null;
   }
   
-  return data;
+  return data as Student;
 }
 
-export async function createStudent(student: Omit<Student, "id">) {
+export async function createStudent(student: Omit<Student, "id">): Promise<Student | null> {
   // Get current user
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -67,10 +64,10 @@ export async function createStudent(student: Omit<Student, "id">) {
     return null;
   }
   
-  return data;
+  return data as Student;
 }
 
-export async function updateStudentInDb(student: Student) {
+export async function updateStudentInDb(student: Student): Promise<Student | null> {
   const { data, error } = await supabase
     .from('students')
     .update({
@@ -92,7 +89,7 @@ export async function updateStudentInDb(student: Student) {
     return null;
   }
   
-  return data;
+  return data as Student;
 }
 
 export async function deleteStudentFromDb(id: string) {
@@ -110,7 +107,7 @@ export async function deleteStudentFromDb(id: string) {
 }
 
 // Attendance Records Functions
-export async function getAttendanceRecords(studentId?: string) {
+export async function getAttendanceRecords(studentId?: string): Promise<AttendanceRecord[]> {
   let query = supabase
     .from('attendance_records')
     .select('*')
@@ -127,16 +124,16 @@ export async function getAttendanceRecords(studentId?: string) {
     return [];
   }
   
-  // Transform the data to ensure consistent field naming
+  // Transform the data to ensure consistent field naming and proper typing
   const transformedData = (data || []).map(record => ({
     id: record.id,
     studentId: record.student_id, // Map student_id to studentId for consistency
     student_id: record.student_id, // Keep both for compatibility
     date: record.date,
-    status: record.status,
+    status: record.status as 'present' | 'absent',
     created_at: record.created_at,
     user_id: record.user_id
-  }));
+  })) as AttendanceRecord[];
   
   console.log('Transformed attendance records:', transformedData);
   return transformedData;
